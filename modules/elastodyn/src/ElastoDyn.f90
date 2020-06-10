@@ -132,7 +132,7 @@ SUBROUTINE ED_Init( InitInp, u, p, x, xd, z, OtherState, y, m, Interval, InitOut
       InputFileData%FlapDOF1 = .FALSE.
       InputFileData%FlapDOF2 = .FALSE.
       InputFileData%EdgeDOF  = .FALSE.
-      
+      InputFileData%EdgeDOF2  = .FALSE.
          ! Set other values not used for BeamDyn      
       InputFileData%OoPDefl  = 0.0_ReKi
       InputFileData%IPDefl   = 0.0_ReKi
@@ -1187,6 +1187,7 @@ END IF
       ! Internal p%DOFs outputs:
 
    m%AllOuts( Q_B1E1   ) = x%QT(   DOF_BE(1,1) )
+   m%AllOuts( Q_B1E2   ) = x%QT(   DOF_BE(1,2) )
    m%AllOuts( Q_B1F1   ) = x%QT(   DOF_BF(1,1) )
    m%AllOuts( Q_B1F2   ) = x%QT(   DOF_BF(1,2) )
    m%AllOuts( Q_DrTr   ) = x%QT(   DOF_DrTr    )
@@ -1206,6 +1207,7 @@ END IF
    m%AllOuts( Q_Y      ) = x%QT(   DOF_Y       )
 
    m%AllOuts( QD_B1E1  ) = x%QDT(  DOF_BE(1,1) )
+   m%AllOuts( QD_B1E2  ) = x%QDT(  DOF_BE(1,2) )
    m%AllOuts( QD_B1F1  ) = x%QDT(  DOF_BF(1,1) )
    m%AllOuts( QD_B1F2  ) = x%QDT(  DOF_BF(1,2) )
    m%AllOuts( QD_DrTr  ) = x%QDT(  DOF_DrTr    )
@@ -1226,6 +1228,8 @@ END IF
 
    m%AllOuts( QD2_B1E1 ) = m%QD2T( DOF_BE(1,1) )
    m%AllOuts( QD2_B2E1 ) = m%QD2T( DOF_BE(2,1) )
+   m%AllOuts( QD2_B1E2 ) = m%QD2T( DOF_BE(1,2) )
+   m%AllOuts( QD2_B2E2 ) = m%QD2T( DOF_BE(2,2) )
    m%AllOuts( QD2_B1F1 ) = m%QD2T( DOF_BF(1,1) )
    m%AllOuts( QD2_B2F1 ) = m%QD2T( DOF_BF(2,1) )
    m%AllOuts( QD2_B1F2 ) = m%QD2T( DOF_BF(1,2) )
@@ -1249,23 +1253,28 @@ END IF
 IF ( p%NumBl > 1 ) THEN
 
    m%AllOuts( Q_B2E1   ) = x%QT(   DOF_BE(2,1) )
+   m%AllOuts( Q_B2E2   ) = x%QT(   DOF_BE(2,2) )
    m%AllOuts( Q_B2F1   ) = x%QT(   DOF_BF(2,1) )
    m%AllOuts( Q_B2F2   ) = x%QT(   DOF_BF(2,2) )
       
    m%AllOuts( QD_B2E1  ) = x%QDT(  DOF_BE(2,1) )
+   m%AllOuts( QD_B2E2  ) = x%QDT(  DOF_BE(2,2) )
    m%AllOuts( QD_B2F1  ) = x%QDT(  DOF_BF(2,1) )
    m%AllOuts( QD_B2F2  ) = x%QDT(  DOF_BF(2,2) )
    
    IF ( p%NumBl > 2 ) THEN
       m%AllOuts( Q_B3E1   ) = x%QT(   DOF_BE(3,1) )
+      m%AllOuts( Q_B3E2   ) = x%QT(   DOF_BE(3,2) )
       m%AllOuts( Q_B3F1   ) = x%QT(   DOF_BF(3,1) )
       m%AllOuts( Q_B3F2   ) = x%QT(   DOF_BF(3,2) )
 
       m%AllOuts( QD_B3E1  ) = x%QDT(  DOF_BE(3,1) )
+      m%AllOuts( QD_B3E2  ) = x%QDT(  DOF_BE(3,2) )
       m%AllOuts( QD_B3F1  ) = x%QDT(  DOF_BF(3,1) )
       m%AllOuts( QD_B3F2  ) = x%QDT(  DOF_BF(3,2) )
 
       m%AllOuts( QD2_B3E1 ) = m%QD2T( DOF_BE(3,1) )
+      m%AllOuts( QD2_B3E2 ) = m%QD2T( DOF_BE(3,2) )
       m%AllOuts( QD2_B3F1 ) = m%QD2T( DOF_BF(3,1) )
       m%AllOuts( QD2_B3F2 ) = m%QD2T( DOF_BF(3,2) )
    ELSE
@@ -1331,6 +1340,11 @@ END IF
                y%BladeLn2Mesh(K)%Orientation(2,3,NodeNum) =     m%CoordSys%te2(K,J2,2)
                y%BladeLn2Mesh(K)%Orientation(3,3,NodeNum) =     m%CoordSys%te3(K,J2,2)
                
+                  ! Translational Acceleration (for water-power request for added mass calculations)
+               y%BladeLn2Mesh(K)%TranslationAcc(1,NodeNum) =     LinAccES(1,J2,K)
+               y%BladeLn2Mesh(K)%TranslationAcc(2,NodeNum) = -1.*LinAccES(3,J2,K)
+               y%BladeLn2Mesh(K)%TranslationAcc(3,NodeNum) =     LinAccES(2,J2,K)  
+               
             else         
                   ! Translational Displacement (first calculate absolute position)
                y%BladeLn2Mesh(K)%TranslationDisp(1,NodeNum) =     m%RtHS%rS (1,K,J2)                ! = the distance from the undeflected tower centerline to the current blade node in the xi ( z1) direction
@@ -1352,22 +1366,12 @@ END IF
                ! Translational Displacement (get displacement, not absolute position):
             y%BladeLn2Mesh(K)%TranslationDisp(:,NodeNum) = y%BladeLn2Mesh(K)%TranslationDisp(:,NodeNum) - y%BladeLn2Mesh(K)%Position(:,NodeNum)
             
+           
                ! Translational Velocity
             y%BladeLn2Mesh(K)%TranslationVel(1,NodeNum) =     m%RtHS%LinVelES(1,J2,K)
             y%BladeLn2Mesh(K)%TranslationVel(2,NodeNum) = -1.*m%RtHS%LinVelES(3,J2,K)
             y%BladeLn2Mesh(K)%TranslationVel(3,NodeNum) =     m%RtHS%LinVelES(2,J2,K)  
-            
-               ! Rotational Velocity
-            y%BladeLn2Mesh(K)%RotationVel(1,NodeNum) =     m%RtHS%AngVelEM(1,J2,K)
-            y%BladeLn2Mesh(K)%RotationVel(2,NodeNum) = -1.*m%RtHS%AngVelEM(3,J2,K)
-            y%BladeLn2Mesh(K)%RotationVel(3,NodeNum) =     m%RtHS%AngVelEM(2,J2,K)  
-
-               ! Translational Acceleration
-            y%BladeLn2Mesh(K)%TranslationAcc(1,NodeNum) =     LinAccES(1,J2,K)
-            y%BladeLn2Mesh(K)%TranslationAcc(2,NodeNum) = -1.*LinAccES(3,J2,K)
-            y%BladeLn2Mesh(K)%TranslationAcc(3,NodeNum) =     LinAccES(2,J2,K)  
-               
-            
+                                                
          END DO !J = 1,p%BldNodes ! Loop through the blade nodes / elements
                   
       END DO !K = 1,p%NumBl
@@ -2066,9 +2070,9 @@ SUBROUTINE Init_DOFparameters( InputFileData, p, ErrStat, ErrMsg )
 
 
    IF ( p%NumBl == 2 )  THEN
-      p%NDOF = 22
+      p%NDOF = 23
    ELSE
-      p%NDOF = 24
+      p%NDOF = 27
    ENDIF
 
    p%NAug = p%NDOF + 1
@@ -2102,6 +2106,9 @@ SUBROUTINE Init_DOFparameters( InputFileData, p, ErrStat, ErrMsg )
       p%DOF_Flag( DOF_BF(K,2) ) = InputFileData%FlapDOF2
       p%DOF_Desc( DOF_BF(K,2) ) = '2nd flapwise bending-mode DOF of blade '//TRIM(Num2LStr( K ))// &
                                   ' (internal DOF index = DOF_BF('         //TRIM(Num2LStr( K ))//',2)), m'
+      p%DOF_Flag( DOF_BE(K,2) ) = InputFileData%EdgeDOF2
+      p%DOF_Desc( DOF_BE(K,2) ) = '2nd edgewise bending-mode DOF of blade '//TRIM(Num2LStr( K ))// &
+                                  ' (internal DOF index = DOF_BE('         //TRIM(Num2LStr( K ))//',2)), m'
    ENDDO          ! K - All blades
 
    p%DOF_Flag(DOF_DrTr) = InputFileData%DrTrDOF
@@ -2199,10 +2206,10 @@ SUBROUTINE Init_DOFparameters( InputFileData, p, ErrStat, ErrMsg )
 
    IF ( p%NumBl == 2 )  THEN ! 2-blader
       p%NPH = 12                         ! Number of DOFs that contribute to the angular velocity of the hub            (body H) in the inertia frame.
-      p%NPM = 15                         ! Number of DOFs that contribute to the angular velocity of the blade elements (body M) in the inertia frame.
+      p%NPM = 17                         ! Number of DOFs that contribute to the angular velocity of the blade elements (body M) in the inertia frame.
    ELSE                    ! 3-blader
       p%NPH = 11                         ! Number of DOFs that contribute to the angular velocity of the hub            (body H) in the inertia frame.
-      p%NPM = 14                         ! Number of DOFs that contribute to the angular velocity of the blade elements (body M) in the inertia frame.
+      p%NPM = 17                         ! Number of DOFs that contribute to the angular velocity of the blade elements (body M) in the inertia frame.
    ENDIF
 
 
@@ -2222,7 +2229,7 @@ SUBROUTINE Init_DOFparameters( InputFileData, p, ErrStat, ErrMsg )
          ! Array of DOF indices (pointers) that contribute to the angular velocity of the blade elements (body M) in the inertia frame:
       DO K = 1,p%NumBl ! Loop through all blades
          p%PM(K,:) = (/ DOF_R, DOF_P, DOF_Y, DOF_TFA1, DOF_TSS1, DOF_TFA2, DOF_TSS2, DOF_Yaw, DOF_RFrl, DOF_GeAz, DOF_DrTr, &
-                        DOF_Teet,  DOF_BF(K,1) , DOF_BE(K,1)    , DOF_BF(K,2)          /)
+                        DOF_Teet,  DOF_BF(K,1) , DOF_BE(K,1)    , DOF_BF(K,2), DOF_BE(K,2)        /)
       ENDDO          ! K - All blades
 
    ELSE  ! 3-blader
@@ -2230,7 +2237,7 @@ SUBROUTINE Init_DOFparameters( InputFileData, p, ErrStat, ErrMsg )
          ! Array of DOF indices (pointers) that contribute to the angular velocity of the blade elements (body M) in the inertia frame:
       DO K = 1,p%NumBl ! Loop through all blades
          p%PM(K,:) = (/ DOF_R, DOF_P, DOF_Y, DOF_TFA1, DOF_TSS1, DOF_TFA2, DOF_TSS2, DOF_Yaw, DOF_RFrl, DOF_GeAz, DOF_DrTr, &
-                                   DOF_BF(K,1) , DOF_BE(K,1)    , DOF_BF(K,2)         /)
+                                   DOF_BF(K,1) , DOF_BE(K,1)    , DOF_BF(K,2), DOF_BE(K,2)        /)
       ENDDO          ! K - All blades
 
    ENDIF
@@ -2599,6 +2606,7 @@ SUBROUTINE SetBladeParameters( p, BladeInData, BladeMeshData, ErrStat, ErrMsg )
 
             ! Set the mode shape arrays
          p%BldEdgSh(:,K) = BladeInData(K)%BldEdgSh
+         p%BldEdg2Sh(:,K) = BladeInData(K)%BldEdg2Sh
          p%BldFl1Sh(:,K) = BladeInData(K)%BldFl1Sh
          p%BldFl2Sh(:,K) = BladeInData(K)%BldFl2Sh
 
@@ -2617,6 +2625,7 @@ SUBROUTINE SetBladeParameters( p, BladeInData, BladeMeshData, ErrStat, ErrMsg )
 
          ! Set the mode shape arrays
       p%BldEdgSh = 0.0_ReKi
+      p%BldEdg2Sh = 0.0_ReKi
       p%BldFl1Sh = 0.0_ReKi
       p%BldFl2Sh = 0.0_ReKi      
       
@@ -2725,10 +2734,10 @@ SUBROUTINE Alloc_BladeParameters( p, AllocAdams, ErrStat, ErrMsg )
 
          ! Allocate space for the mode shape arrays:
 
-   ALLOCATE( p%BldEdgSh(2:PolyOrd,p%NumBl), p%BldFl1Sh(2:PolyOrd,p%NumBl), p%BldFl2Sh(2:PolyOrd,p%NumBl), STAT = ErrStat )
+   ALLOCATE( p%BldEdgSh(2:PolyOrd,p%NumBl), p%BldEdg2Sh(2:PolyOrd,p%NumBl), p%BldFl1Sh(2:PolyOrd,p%NumBl), p%BldFl2Sh(2:PolyOrd,p%NumBl), STAT = ErrStat )
    IF ( ErrStat /= 0 ) THEN
       ErrStat = ErrID_Fatal
-      ErrMsg  = ' Error allocating BldEdgSh, BldFl1Sh, and BldFl2Sh arrays.'
+      ErrMsg  = ' Error allocating BldEdgSh, BldEdg2Sh, BldFl1Sh, and BldFl2Sh arrays.'
       RETURN
    END IF
 
@@ -2819,9 +2828,9 @@ SUBROUTINE SetOtherParameters( p, InputFileData, ErrStat, ErrMsg )
    !CALL AllocAry( p%AxRedBld, p%NumBl, 3_IntKi, 3_IntKi, p%TipNode, 'AxRedBld',  ErrStat, ErrMsg ); IF ( ErrStat /= ErrID_None ) RETURN
    CALL AllocAry( p%BldCG,    p%NumBl,                              'BldCG',     ErrStat, ErrMsg ); IF ( ErrStat /= ErrID_None ) RETURN
    CALL AllocAry( p%KBF,      p%NumBl, 2_IntKi, 2_IntKi,            'KBF',       ErrStat, ErrMsg ); IF ( ErrStat /= ErrID_None ) RETURN
-   CALL AllocAry( p%KBE,      p%NumBl, 1_IntKi, 1_IntKi,            'KBE',       ErrStat, ErrMsg ); IF ( ErrStat /= ErrID_None ) RETURN
+   CALL AllocAry( p%KBE,      p%NumBl, 2_IntKi, 2_IntKi,            'KBE',       ErrStat, ErrMsg ); IF ( ErrStat /= ErrID_None ) RETURN
    CALL AllocAry( p%CBF,      p%NumBl, 2_IntKi, 2_IntKi,            'CBF',       ErrStat, ErrMsg ); IF ( ErrStat /= ErrID_None ) RETURN
-   CALL AllocAry( p%CBE,      p%NumBl, 1_IntKi, 1_IntKi,            'CBE',       ErrStat, ErrMsg ); IF ( ErrStat /= ErrID_None ) RETURN
+   CALL AllocAry( p%CBE,      p%NumBl, 2_IntKi, 2_IntKi,            'CBE',       ErrStat, ErrMsg ); IF ( ErrStat /= ErrID_None ) RETURN
    CALL AllocAry( p%SecondMom,p%NumBl,                              'SecondMom', ErrStat, ErrMsg ); IF ( ErrStat /= ErrID_None ) RETURN
    CALL AllocAry( p%FirstMom, p%NumBl,                              'FirstMom',  ErrStat, ErrMsg ); IF ( ErrStat /= ErrID_None ) RETURN
    CALL AllocAry( p%FreqBE,   p%NumBl, NumBE, 3_IntKi,              'FreqBE',    ErrStat, ErrMsg ); IF ( ErrStat /= ErrID_None ) RETURN
@@ -2833,7 +2842,7 @@ SUBROUTINE SetOtherParameters( p, InputFileData, ErrStat, ErrMsg )
    CALL AllocAry(p%TElmntMass, p%TwrNodes,          'TElmntMass', ErrStat, ErrMsg ); IF ( ErrStat /= ErrID_None ) RETURN
 
    !CALL AllocAry( p%AxRedBld, p%NumBl, 3_IntKi, 3_IntKi, p%TipNode, 'AxRedBld',  ErrStat, ErrMsg ); IF ( ErrStat /= ErrID_None ) RETURN
-   ALLOCATE ( p%AxRedBld(p%NumBl, 3_IntKi, 3_IntKi, 0:p%TipNode) , STAT=ErrStat )
+   ALLOCATE ( p%AxRedBld(p%NumBl, 4_IntKi, 4_IntKi, 0:p%TipNode) , STAT=ErrStat ) ! To handle 2nd Edge DOF
    IF ( ErrStat /= 0 ) THEN
       ErrStat = ErrID_Fatal
       ErrMsg  = 'Error allocating AxRedBld array.'
@@ -2851,7 +2860,7 @@ SUBROUTINE SetOtherParameters( p, InputFileData, ErrStat, ErrMsg )
       RETURN
    END IF
 
-   ALLOCATE ( p%TwistedSF(p%NumBl,2,3,0:p%TipNode,0:2) , STAT=ErrStat )
+   ALLOCATE ( p%TwistedSF(p%NumBl,2,4,0:p%TipNode,0:2) , STAT=ErrStat ) ! Adding 4 in 2,4,0 for extra Edge DOF 
    IF ( ErrStat /= 0 ) THEN
       ErrStat = ErrID_Fatal
       ErrMsg  = 'Error allocating TwistedSF array.'
@@ -2974,7 +2983,7 @@ SUBROUTINE Alloc_RtHS( RtHS, p, ErrStat, ErrMsg  )
       ErrMsg = ' Error allocating memory for the PAngVelEL array.'
       RETURN
    ENDIF
-   ALLOCATE ( RtHS%PAngVelEM(p%NumBl,0:p%TipNode,p%NDOF,0:1,Dims) , STAT=ErrStat )
+   ALLOCATE ( RtHS%PAngVelEM(p%NumBl,p%TipNode,p%NDOF,0:1,Dims) , STAT=ErrStat )
    IF ( ErrStat /= 0_IntKi )  THEN
       ErrStat = ErrID_Fatal
       ErrMsg = ' Error allocating memory for the PAngVelEM array.'
@@ -2994,11 +3003,10 @@ SUBROUTINE Alloc_RtHS( RtHS, p, ErrStat, ErrMsg  )
    !CALL AllocAry( RtHS%LinVelET,  Dims, p%TwrNodes,         'LinVelET',  ErrStat, ErrMsg );  IF ( ErrStat /= ErrID_None ) RETURN         
 
    !CALL AllocAry( RtHS%LinVelESm2,                 p%NumBl, 'LinVelESm2',ErrStat, ErrMsg );  IF ( ErrStat /= ErrID_None ) RETURN ! The m2-component (closest to tip) of LinVelES
-   ALLOCATE( RtHS%LinVelES( Dims, 0:p%TipNode, p%NumBl ), &
-             RtHS%AngVelEM( Dims, 0:p%TipNode, p%NumBl ), STAT=ErrStat )
+   ALLOCATE( RtHS%LinVelES( Dims, 0:p%TipNode, p%NumBl ), STAT=ErrStat )
    IF (ErrStat /= 0 ) THEN
       ErrStat = ErrID_Fatal
-      ErrMsg = RoutineName//":Error allocating LinVelES and AngVelEM."
+      ErrMsg = RoutineName//":Error allocating LinVelES."
       RETURN
    END IF
    
@@ -3100,12 +3108,6 @@ SUBROUTINE Alloc_RtHS( RtHS, p, ErrStat, ErrMsg  )
       RETURN
    ENDIF
 
-   ALLOCATE(RtHS%AngPosHM(Dims, p%NumBl, 0:p%TipNode), STAT=ErrStat )
-   IF ( ErrStat /= 0_IntKi )  THEN
-      ErrStat = ErrID_Fatal
-      ErrMsg = ' Error allocating memory for the AngPosHM arrays.'
-      RETURN
-   ENDIF
 
    !CALL AllocAry( RtHS%LinAccESt, Dims, p%NumBl, p%TipNode,'LinAccESt', ErrStat, ErrMsg );   IF ( ErrStat /= ErrID_None ) RETURN
    !CALL AllocAry( RtHS%LinAccETt, Dims, p%TwrNodes,        'LinAccETt', ErrStat, ErrMsg );   IF ( ErrStat /= ErrID_None ) RETURN
@@ -3124,6 +3126,7 @@ SUBROUTINE Alloc_RtHS( RtHS, p, ErrStat, ErrMsg  )
    CALL AllocAry( RtHS%FSAero,    Dims, p%NumBl,p%BldNodes,'FSAero',    ErrStat, ErrMsg );   IF ( ErrStat /= ErrID_None ) RETURN
    CALL AllocAry( RtHS%MMAero,    Dims, p%NumBl,p%BldNodes,'MMAero',    ErrStat, ErrMsg );   IF ( ErrStat /= ErrID_None ) RETURN
    CALL AllocAry( RtHS%FSTipDrag, Dims, p%NumBl,           'FSTipDrag', ErrStat, ErrMsg );   IF ( ErrStat /= ErrID_None ) RETURN
+   CALL AllocAry( RtHS%AngPosHM,  Dims, p%NumBl,p%TipNode, 'AngPosHM',  ErrStat, ErrMsg );   IF ( ErrStat /= ErrID_None ) RETURN
    CALL AllocAry( RtHS%PFTHydro,  Dims, p%TwrNodes, p%NDOF,'PFTHydro',  ErrStat, ErrMsg );   IF ( ErrStat /= ErrID_None ) RETURN
    CALL AllocAry( RtHS%PMFHydro,  Dims, p%TwrNodes, p%NDOF,'PMFHydro',  ErrStat, ErrMsg );   IF ( ErrStat /= ErrID_None ) RETURN
    CALL AllocAry( RtHS%FTHydrot,  Dims, p%TwrNodes,        'FTHydrot',  ErrStat, ErrMsg );   IF ( ErrStat /= ErrID_None ) RETURN
@@ -3559,6 +3562,7 @@ SUBROUTINE SetPrimaryParameters( p, InputFileData, ErrStat, ErrMsg  )
    !p%FlapDOF1  = InputFileData%FlapDOF1
    !p%FlapDOF2  = InputFileData%FlapDOF2
    !p%EdgeDOF   = InputFileData%EdgeDOF
+   !p%EdgeDOF   = InputFileData%EdgeDOF2
    !p%TeetDOF   = InputFileData%TeetDOF
    !p%DrTrDOF   = InputFileData%DrTrDOF
    !p%GenDOF    = InputFileData%GenDOF
@@ -3613,6 +3617,7 @@ SUBROUTINE Init_ContStates( x, p, InputFileData, OtherState, ErrStat, ErrMsg  )
 
       ! local variables
    REAL(ReKi)                                   :: InitQE1(p%NumBl)  ! Initial value of the 1st blade edge DOF
+   REAL(ReKi)                                   :: InitQE2(p%NumBl)  ! Initial value of the 2nd blade edge DOF
    REAL(ReKi)                                   :: InitQF1(p%NumBl)  ! Initial value of the 1st blade flap DOF
    REAL(ReKi)                                   :: InitQF2(p%NumBl)  ! Initial value of the 2nd blade flap DOF
 !   INTEGER(IntKi)                               :: I                 ! loop counter
@@ -3629,20 +3634,23 @@ SUBROUTINE Init_ContStates( x, p, InputFileData, OtherState, ErrStat, ErrMsg  )
    
       ! Calculate/apply the initial blade DOF values to the corresponding DOFs.
    IF (.NOT. p%BD4Blades) THEN  !Skipping subroutine if BeamDyn = TRUE
-      CALL InitBlDefl ( p, InputFileData, InitQF1, InitQF2, InitQE1, ErrStat, ErrMsg  )
+      CALL InitBlDefl ( p, InputFileData, InitQF1, InitQF2, InitQE1, InitQE2, ErrStat, ErrMsg  )
    ELSE
       InitQF1 = 0.0_ReKi
       InitQF2 = 0.0_ReKi
       InitQE1 = 0.0_ReKi
+      InitQE2 = 0.0_ReKi
    END IF
    
       
    x%QT ( DOF_BF(1:p%NumBl,1) ) = InitQF1   ! These come from InitBlDefl().
    x%QT ( DOF_BF(1:p%NumBl,2) ) = InitQF2   ! These come from InitBlDefl().
    x%QT ( DOF_BE(1:p%NumBl,1) ) = InitQE1   ! These come from InitBlDefl().
+   x%QT ( DOF_BE(1:p%NumBl,2) ) = InitQE2   ! These come from InitBlDefl().
    x%QDT( DOF_BF(1:p%NumBl,1) ) = 0.0
    x%QDT( DOF_BF(1:p%NumBl,2) ) = 0.0
    x%QDT( DOF_BE(1:p%NumBl,1) ) = 0.0
+   x%QDT( DOF_BE(1:p%NumBl,2) ) = 0.0
 
       ! Teeter Motion
 
@@ -3885,7 +3893,7 @@ SUBROUTINE SetOutParam(OutList, p, ErrStat, ErrMsg )
    LOGICAL                      :: InvalidOutput(0:MaxOutPts)                      ! This array determines if the output channel is valid for this configuration
    CHARACTER(ChanLen)           :: OutListTmp                                      ! A string to temporarily hold OutList(I)
 
-   CHARACTER(OutStrLenM1), PARAMETER  :: ValidParamAry(972) =  (/ &                  ! This lists the names of the allowed parameters, which must be sorted alphabetically
+   CHARACTER(OutStrLenM1), PARAMETER  :: ValidParamAry(981) =  (/ &                  ! This lists the names of the allowed parameters, which must be sorted alphabetically
                                "AZIMUTH  ","BLDPITCH1","BLDPITCH2","BLDPITCH3","BLPITCH1 ","BLPITCH2 ","BLPITCH3 ", &
                                "GENACCEL ","GENSPEED ","HSSBRTQ  ","HSSHFTA  ","HSSHFTPWR","HSSHFTTQ ","HSSHFTV  ", &
                                "IPDEFL1  ","IPDEFL2  ","IPDEFL3  ","LSSGAGA  ","LSSGAGAXA","LSSGAGAXS","LSSGAGFXA", &
@@ -3904,15 +3912,17 @@ SUBROUTINE SetOutParam(OutList, p, ErrStat, ErrMsg )
                                "PTFMRVZI ","PTFMRVZT ","PTFMSURGE","PTFMSWAY ","PTFMTAXI ","PTFMTAXT ","PTFMTAYI ", &
                                "PTFMTAYT ","PTFMTAZI ","PTFMTAZT ","PTFMTDXI ","PTFMTDXT ","PTFMTDYI ","PTFMTDYT ", &
                                "PTFMTDZI ","PTFMTDZT ","PTFMTVXI ","PTFMTVXT ","PTFMTVYI ","PTFMTVYT ","PTFMTVZI ", &
-                               "PTFMTVZT ","PTFMYAW  ","QD2_B1E1 ","QD2_B1F1 ","QD2_B1F2 ","QD2_B2E1 ","QD2_B2F1 ", &
-                               "QD2_B2F2 ","QD2_B3E1 ","QD2_B3F1 ","QD2_B3F2 ","QD2_DRTR ","QD2_GEAZ ","QD2_HV   ", &
-                               "QD2_P    ","QD2_R    ","QD2_RFRL ","QD2_SG   ","QD2_SW   ","QD2_TEET ","QD2_TFA1 ", &
-                               "QD2_TFA2 ","QD2_TFRL ","QD2_TSS1 ","QD2_TSS2 ","QD2_Y    ","QD2_YAW  ","QD_B1E1  ", &
-                               "QD_B1F1  ","QD_B1F2  ","QD_B2E1  ","QD_B2F1  ","QD_B2F2  ","QD_B3E1  ","QD_B3F1  ", &
-                               "QD_B3F2  ","QD_DRTR  ","QD_GEAZ  ","QD_HV    ","QD_P     ","QD_R     ","QD_RFRL  ", &
-                               "QD_SG    ","QD_SW    ","QD_TEET  ","QD_TFA1  ","QD_TFA2  ","QD_TFRL  ","QD_TSS1  ", &
-                               "QD_TSS2  ","QD_Y     ","QD_YAW   ","Q_B1E1   ","Q_B1F1   ","Q_B1F2   ","Q_B2E1   ", &
-                               "Q_B2F1   ","Q_B2F2   ","Q_B3E1   ","Q_B3F1   ","Q_B3F2   ","Q_DRTR   ","Q_GEAZ   ", &
+                               "PTFMTVZT ","PTFMYAW  ","QD2_B1E1 ","QD2_B1E2 ","QD2_B1F1 ","QD2_B1F2 ","QD2_B2E1 ", &
+                               "QD2_B2E2 ","QD2_B2F1 ","QD2_B2F2 ","QD2_B3E1 ","QD2_B3E2 ","QD2_B3F1 ","QD2_B3F2 ", &
+                               "QD2_DRTR ","QD2_GEAZ ","QD2_HV   ","QD2_P    ","QD2_R    ","QD2_RFRL ","QD2_SG   ", &
+                               "QD2_SW   ","QD2_TEET ","QD2_TFA1 ","QD2_TFA2 ","QD2_TFRL ","QD2_TSS1 ","QD2_TSS2 ", &
+                               "QD2_Y    ","QD2_YAW  ","QD_B1E1  ","QD_B1E2  ","QD_B1F1  ","QD_B1F2  ","QD_B2E1  ", &
+                               "QD_B2E2  ","QD_B2F1  ","QD_B2F2  ","QD_B3E1  ","QD_B3E2  ","QD_B3F1  ","QD_B3F2  ", &
+                               "QD_DRTR  ","QD_GEAZ  ","QD_HV    ","QD_P     ","QD_R     ","QD_RFRL  ","QD_SG    ", &
+                               "QD_SW    ","QD_TEET  ","QD_TFA1  ","QD_TFA2  ","QD_TFRL  ","QD_TSS1  ","QD_TSS2  ", &
+                               "QD_Y     ","QD_YAW   ","Q_B1E1   ","Q_B1E2   ","Q_B1F1   ","Q_B1F2   ","Q_B2E1   ", &
+                               "Q_B2E2   ","Q_B2F1   ","Q_B2F2   ","Q_B3E1   ","Q_B3E2   ","Q_B3F1   ","Q_B3F2   ", &
+                               "Q_DRTR   ","Q_GEAZ   ", &
                                "Q_HV     ","Q_P      ","Q_R      ","Q_RFRL   ","Q_SG     ","Q_SW     ","Q_TEET   ", &
                                "Q_TFA1   ","Q_TFA2   ","Q_TFRL   ","Q_TSS1   ","Q_TSS2   ","Q_Y      ","Q_YAW    ", &
                                "RFRLBRM  ","ROLLDEFL1","ROLLDEFL2","ROLLDEFL3","ROOTFXB1 ","ROOTFXB2 ","ROOTFXB3 ", &
@@ -4025,7 +4035,7 @@ SUBROUTINE SetOutParam(OutList, p, ErrStat, ErrMsg )
                                "YAWBRRDYT","YAWBRRDZT","YAWBRRVXP","YAWBRRVYP","YAWBRRVZP","YAWBRTAXP","YAWBRTAYP", &
                                "YAWBRTAZP","YAWBRTDXP","YAWBRTDXT","YAWBRTDYP","YAWBRTDYT","YAWBRTDZP","YAWBRTDZT", &
                                "YAWPOS   ","YAWPZN   ","YAWPZP   ","YAWRATE  ","YAWVZN   ","YAWVZP   "/)
-   INTEGER(IntKi), PARAMETER :: ParamIndxAry(972) =  (/ &                            ! This lists the index into AllOuts(:) of the allowed parameters ValidParamAry(:)
+   INTEGER(IntKi), PARAMETER :: ParamIndxAry(981) =  (/ &                            ! This lists the index into AllOuts(:) of the allowed parameters ValidParamAry(:)
                                 LSSTipPxa , PtchPMzc1 , PtchPMzc2 , PtchPMzc3 , PtchPMzc1 , PtchPMzc2 , PtchPMzc3 , &
                                   HSShftA ,   HSShftV ,   HSSBrTq ,   HSShftA , HSShftPwr ,  HSShftTq ,   HSShftV , &
                                   TipDyc1 ,   TipDyc2 ,   TipDyc3 , LSSGagAxa , LSSGagAxa , LSSGagAxa , LSShftFxa , &
@@ -4044,15 +4054,17 @@ SUBROUTINE SetOutParam(OutList, p, ErrStat, ErrMsg )
                                  PtfmRVzi ,  PtfmRVzt ,  PtfmTDxi ,  PtfmTDyi ,  PtfmTAxi ,  PtfmTAxt ,  PtfmTAyi , &
                                  PtfmTAyt ,  PtfmTAzi ,  PtfmTAzt ,  PtfmTDxi ,  PtfmTDxt ,  PtfmTDyi ,  PtfmTDyt , &
                                  PtfmTDzi ,  PtfmTDzt ,  PtfmTVxi ,  PtfmTVxt ,  PtfmTVyi ,  PtfmTVyt ,  PtfmTVzi , &
-                                 PtfmTVzt ,  PtfmRDzi ,  QD2_B1E1 ,  QD2_B1F1 ,  QD2_B1F2 ,  QD2_B2E1 ,  QD2_B2F1 , &
-                                 QD2_B2F2 ,  QD2_B3E1 ,  QD2_B3F1 ,  QD2_B3F2 ,  QD2_DrTr ,  QD2_GeAz ,    QD2_Hv , &
-                                    QD2_P ,     QD2_R ,  QD2_RFrl ,    QD2_Sg ,    QD2_Sw ,  QD2_Teet ,  QD2_TFA1 , &
-                                 QD2_TFA2 ,  QD2_TFrl ,  QD2_TSS1 ,  QD2_TSS2 ,     QD2_Y ,   QD2_Yaw ,   QD_B1E1 , &
-                                  QD_B1F1 ,   QD_B1F2 ,   QD_B2E1 ,   QD_B2F1 ,   QD_B2F2 ,   QD_B3E1 ,   QD_B3F1 , &
-                                  QD_B3F2 ,   QD_DrTr ,   QD_GeAz ,     QD_Hv ,      QD_P ,      QD_R ,   QD_RFrl , &
-                                    QD_Sg ,     QD_Sw ,   QD_Teet ,   QD_TFA1 ,   QD_TFA2 ,   QD_TFrl ,   QD_TSS1 , &
-                                  QD_TSS2 ,      QD_Y ,    QD_Yaw ,    Q_B1E1 ,    Q_B1F1 ,    Q_B1F2 ,    Q_B2E1 , &
-                                   Q_B2F1 ,    Q_B2F2 ,    Q_B3E1 ,    Q_B3F1 ,    Q_B3F2 ,    Q_DrTr ,    Q_GeAz , &
+                                 PtfmTVzt ,  PtfmRDzi ,  QD2_B1E1 ,  QD2_B1E2 ,  QD2_B1F1 ,  QD2_B1F2 ,  QD2_B2E1 , &
+                                 QD2_B2E2 ,  QD2_B2F1 ,  QD2_B2F2 ,  QD2_B3E1 ,  QD2_B3E2 ,  QD2_B3F1 ,  QD2_B3F2 , & 
+                                 QD2_DrTr ,  QD2_GeAz ,    QD2_Hv ,     QD2_P ,     QD2_R ,  QD2_RFrl ,    QD2_Sg , &
+                                   QD2_Sw ,  QD2_Teet ,  QD2_TFA1 ,  QD2_TFA2 ,  QD2_TFrl ,  QD2_TSS1 ,  QD2_TSS2 , &
+                                    QD2_Y ,   QD2_Yaw ,   QD_B1E1 ,   QD_B1E2 ,   QD_B1F1 ,   QD_B1F2 ,   QD_B2E1 , &
+                                  QD_B2E2 ,   QD_B2F1 ,   QD_B2F2 ,   QD_B3E1 ,   QD_B3E2 ,   QD_B3F1 ,   QD_B3F2 , &
+                                  QD_DrTr ,   QD_GeAz ,     QD_Hv ,      QD_P ,      QD_R ,   QD_RFrl ,     QD_Sg , &
+                                    QD_Sw ,   QD_Teet ,   QD_TFA1 ,   QD_TFA2 ,   QD_TFrl ,   QD_TSS1 ,   QD_TSS2 , &
+                                     QD_Y ,    QD_Yaw ,    Q_B1E1 ,    Q_B1E2 ,    Q_B1F1 ,    Q_B1F2 ,    Q_B2E1 , &
+                                   Q_B2E2 ,    Q_B2F1 ,    Q_B2F2 ,    Q_B3E1 ,    Q_B3E2 ,    Q_B3F1 ,    Q_B3F2 , &
+                                   Q_DrTr ,    Q_GeAz , &
                                      Q_Hv ,       Q_P ,       Q_R ,    Q_RFrl ,      Q_Sg ,      Q_Sw ,    Q_Teet , &
                                    Q_TFA1 ,    Q_TFA2 ,    Q_TFrl ,    Q_TSS1 ,    Q_TSS2 ,       Q_Y ,     Q_Yaw , &
                                   RFrlBrM ,  TipRDxb1 ,  TipRDxb2 ,  TipRDxb3 ,  RootFxb1 ,  RootFxb2 ,  RootFxb3 , &
@@ -4165,7 +4177,7 @@ SUBROUTINE SetOutParam(OutList, p, ErrStat, ErrMsg )
                                 YawBrRDyt , YawBrRDzt , YawBrRVxp , YawBrRVyp , YawBrRVzp , YawBrTAxp , YawBrTAyp , &
                                 YawBrTAzp , YawBrTDxp , YawBrTDxt , YawBrTDyp , YawBrTDyt , YawBrTDzp , YawBrTDzt , &
                                    YawPzn ,    YawPzn ,    YawPzn ,    YawVzn ,    YawVzn ,    YawVzn /)
-   CHARACTER(ChanLen), PARAMETER :: ParamUnitsAry(972) =  (/ &                     ! This lists the units corresponding to the allowed parameters
+   CHARACTER(ChanLen), PARAMETER :: ParamUnitsAry(981) =  (/ &                     ! This lists the units corresponding to the allowed parameters
                                "(deg)     ","(deg)     ","(deg)     ","(deg)     ","(deg)     ","(deg)     ","(deg)     ", &
                                "(deg/s^2) ","(rpm)     ","(kN-m)    ","(deg/s^2) ","(kW)      ","(kN-m)    ","(rpm)     ", &
                                "(m)       ","(m)       ","(m)       ","(deg/s^2) ","(deg/s^2) ","(deg/s^2) ","(kN)      ", &
@@ -4185,14 +4197,16 @@ SUBROUTINE SetOutParam(OutList, p, ErrStat, ErrMsg )
                                "(m/s^2)   ","(m/s^2)   ","(m/s^2)   ","(m)       ","(m)       ","(m)       ","(m)       ", &
                                "(m)       ","(m)       ","(m/s)     ","(m/s)     ","(m/s)     ","(m/s)     ","(m/s)     ", &
                                "(m/s)     ","(deg)     ","(m/s^2)   ","(m/s^2)   ","(m/s^2)   ","(m/s^2)   ","(m/s^2)   ", &
-                               "(m/s^2)   ","(m/s^2)   ","(m/s^2)   ","(m/s^2)   ","(rad/s^2) ","(rad/s^2) ","(m/s^2)   ", &
-                               "(rad/s^2) ","(rad/s^2) ","(rad/s^2) ","(m/s^2)   ","(m/s^2)   ","(rad/s^2) ","(m/s^2)   ", &
-                               "(m/s^2)   ","(rad/s^2) ","(m/s^2)   ","(m/s^2)   ","(rad/s^2) ","(rad/s^2) ","(m/s)     ", &
+                               "(m/s^2)   ","(m/s^2)   ","(m/s^2)   ","(m/s^2)   ","(m/s^2)   ","(m/s^2)   ","(m/s^2)   ", &
+                               "(rad/s^2) ","(rad/s^2) ","(m/s^2)   ","(rad/s^2) ","(rad/s^2) ","(rad/s^2) ","(m/s^2)   ", &
+                               "(m/s^2)   ","(rad/s^2) ","(m/s^2)   ","(m/s^2)   ","(rad/s^2) ","(m/s^2)   ","(m/s^2)   ", &
+                               "(rad/s^2) ","(rad/s^2) ","(m/s)     ","(m/s)     ","(m/s)     ","(m/s)     ","(m/s)     ", &
                                "(m/s)     ","(m/s)     ","(m/s)     ","(m/s)     ","(m/s)     ","(m/s)     ","(m/s)     ", &
-                               "(m/s)     ","(rad/s)   ","(rad/s)   ","(m/s)     ","(rad/s)   ","(rad/s)   ","(rad/s)   ", &
-                               "(m/s)     ","(m/s)     ","(rad/s)   ","(m/s)     ","(m/s)     ","(rad/s)   ","(m/s)     ", &
-                               "(m/s)     ","(rad/s)   ","(rad/s)   ","(m)       ","(m)       ","(m)       ","(m)       ", &
-                               "(m)       ","(m)       ","(m)       ","(m)       ","(m)       ","(rad)     ","(rad)     ", &
+                               "(rad/s)   ","(rad/s)   ","(m/s)     ","(rad/s)   ","(rad/s)   ","(rad/s)   ","(m/s)     ", &
+                               "(m/s)     ","(rad/s)   ","(m/s)     ","(m/s)     ","(rad/s)   ","(m/s)     ","(m/s)     ", &
+                               "(rad/s)   ","(rad/s)   ","(m)       ","(m)       ","(m)       ","(m)       ","(m)       ", &
+                               "(m)       ","(m)       ","(m)       ","(m)       ","(m)       ","(m)       ","(m)       ", &
+                               "(rad)     ","(rad)     ", &
                                "(m)       ","(rad)     ","(rad)     ","(rad)     ","(m)       ","(m)       ","(rad)     ", &
                                "(m)       ","(m)       ","(rad)     ","(m)       ","(m)       ","(rad)     ","(rad)     ", &
                                "(kN-m)    ","(deg)     ","(deg)     ","(deg)     ","(kN)      ","(kN)      ","(kN)      ", &
@@ -4448,14 +4462,17 @@ end if
       InvalidOutput(PtchPMzc3) = .TRUE.
 
       InvalidOutput(   Q_B3E1) = .TRUE.
+      InvalidOutput(   Q_B3E2) = .TRUE.
       InvalidOutput(   Q_B3F1) = .TRUE.
       InvalidOutput(   Q_B3F2) = .TRUE.
 
       InvalidOutput(  QD_B3E1) = .TRUE.
+      InvalidOutput(  QD_B3E2) = .TRUE.
       InvalidOutput(  QD_B3F1) = .TRUE.
       InvalidOutput(  QD_B3F2) = .TRUE.
 
       InvalidOutput( QD2_B3E1) = .TRUE.
+      InvalidOutput( QD2_B3E2) = .TRUE.
       InvalidOutput( QD2_B3F1) = .TRUE.
       InvalidOutput( QD2_B3F2) = .TRUE.
    ELSE IF ( p%NumBl > 2_IntKi ) THEN
@@ -4472,38 +4489,47 @@ end if
 
     IF ( p%BD4Blades ) THEN
       InvalidOutput(   Q_B1E1) = .TRUE.
+      InvalidOutput(   Q_B1E2) = .TRUE.
       InvalidOutput(   Q_B1F1) = .TRUE.
       InvalidOutput(   Q_B1F2) = .TRUE.
 
       InvalidOutput(  QD_B1E1) = .TRUE.
+      InvalidOutput(  QD_B1E2) = .TRUE.
       InvalidOutput(  QD_B1F1) = .TRUE.
       InvalidOutput(  QD_B1F2) = .TRUE.
 
       InvalidOutput( QD2_B1E1) = .TRUE.
+      InvalidOutput( QD2_B1E2) = .TRUE.
       InvalidOutput( QD2_B1F1) = .TRUE.
       InvalidOutput( QD2_B1F2) = .TRUE.      
       
       InvalidOutput(   Q_B2E1) = .TRUE.
+      InvalidOutput(   Q_B2E2) = .TRUE.
       InvalidOutput(   Q_B2F1) = .TRUE.
       InvalidOutput(   Q_B2F2) = .TRUE.
 
       InvalidOutput(  QD_B2E1) = .TRUE.
+      InvalidOutput(  QD_B2E2) = .TRUE.
       InvalidOutput(  QD_B2F1) = .TRUE.
       InvalidOutput(  QD_B2F2) = .TRUE.
 
       InvalidOutput( QD2_B2E1) = .TRUE.
+      InvalidOutput( QD2_B2E2) = .TRUE.
       InvalidOutput( QD2_B2F1) = .TRUE.
       InvalidOutput( QD2_B2F2) = .TRUE.
       
       InvalidOutput(   Q_B3E1) = .TRUE.
+      InvalidOutput(   Q_B3E2) = .TRUE.
       InvalidOutput(   Q_B3F1) = .TRUE.
       InvalidOutput(   Q_B3F2) = .TRUE.
 
       InvalidOutput(  QD_B3E1) = .TRUE.
+      InvalidOutput(  QD_B3E2) = .TRUE.
       InvalidOutput(  QD_B3F1) = .TRUE.
       InvalidOutput(  QD_B3F2) = .TRUE.
 
       InvalidOutput( QD2_B3E1) = .TRUE.
+      InvalidOutput( QD2_B3E2) = .TRUE.
       InvalidOutput( QD2_B3F1) = .TRUE.
       InvalidOutput( QD2_B3F2) = .TRUE.      
    END IF
@@ -4624,8 +4650,8 @@ SUBROUTINE Coeff(p,InputFileData, ErrStat, ErrMsg)
 
       ! Local variables.
 
-   REAL(ReKi)                   :: AxRdBld   (3,3)                                 ! Temporary result holding the current addition to the p%AxRedBld() array.
-   REAL(ReKi)                   :: AxRdBldOld(3,3)                                 ! Previous AxRdBld (i.e., AxRdBld from the previous node)
+   REAL(ReKi)                   :: AxRdBld   (4,4)                                 ! Temporary result holding the current addition to the p%AxRedBld() array. Changed to 4 for edge DOF
+   REAL(ReKi)                   :: AxRdBldOld(4,4)                                 ! Previous AxRdBld (i.e., AxRdBld from the previous node) Changed to 4 for edge DOF
    REAL(ReKi)                   :: AxRdTFA   (2,2)                                 ! Temporary result holding the current addition to the AxRedTFA() array.
    REAL(ReKi)                   :: AxRdTFAOld(2,2)                                 ! Previous AxRdTFA (i.e., AxRdTFA from the previous node)
    REAL(ReKi)                   :: AxRdTSS   (2,2)                                 ! Temporary result holding the current addition to the AxRedTSS() array.
@@ -4637,20 +4663,21 @@ SUBROUTINE Coeff(p,InputFileData, ErrStat, ErrMsg)
    REAL(ReKi)                   :: ElStffFA                                        ! (Temporary) tower fore-aft stiffness of an element
    REAL(ReKi)                   :: ElStffSS                                        ! (Temporary) tower side-to-side  stiffness of an element
    REAL(ReKi)                   :: FMomAbvNd (p%NumBl,p%BldNodes)                  ! FMomAbvNd(K,J) = portion of the first moment of blade K about the rotor centerline (not root, like FirstMom(K)) associated with everything above node J (including tip brake masses).
-   REAL(ReKi)                   :: KBECent   (p%NumBl,1,1)                         ! Centrifugal-term of generalized edgewise stiffness of the blades.
+   REAL(ReKi)                   :: KBECent   (p%NumBl,2,2)                         ! Centrifugal-term of generalized edgewise stiffness of the blades.
    REAL(ReKi)                   :: KBFCent   (p%NumBl,2,2)                         ! Centrifugal-term of generalized flapwise stiffness of the blades.
    REAL(ReKi)                   :: KTFAGrav  (2,2)                                 ! Gravitational-term of generalized fore-aft stiffness of the tower.
    REAL(ReKi)                   :: KTSSGrav  (2,2)                                 ! Gravitational-term of generalized side-to-side stiffness of the tower.
-   REAL(ReKi)                   :: MBE       (p%NumBl,1,1)                         ! Generalized edgewise mass of the blades.
+   REAL(ReKi)                   :: MBE       (p%NumBl,2,2)                         ! Generalized edgewise mass of the blades.
    REAL(ReKi)                   :: MBF       (p%NumBl,2,2)                         ! Generalized flapwise mass of the blades.
    REAL(ReKi)                   :: MTFA      (2,2)                                 ! Generalized fore-aft mass of the tower.
    REAL(ReKi)                   :: MTSS      (2,2)                                 ! Generalized side-to-side mass of the tower.
    REAL(ReKi)                   :: Shape                                           ! Temporary result holding a value from the SHP function
+   REAL(ReKi)                   :: ShapeE2                                           ! Temporary result holding a value from the SHP function
    REAL(ReKi)                   :: Shape1                                          ! Temporary result holding a value from the SHP function
    REAL(ReKi)                   :: Shape2                                          ! Temporary result holding a value from the SHP function
    REAL(ReKi)                   :: TMssAbvNd (p%TwrNodes)                          ! Portion of the tower mass associated with everything above node J (including tower-top effects)
-   REAL(ReKi)                   :: TwstdSF   (2,3,0:1)                             ! Temperory result holding the current addition to the TwistedSF() array.
-   REAL(ReKi)                   :: TwstdSFOld(2,3,0:1)                             ! Previous TwstdSF (i.e., TwstdSF from the previous node)
+   REAL(ReKi)                   :: TwstdSF   (2,4,0:1)                             ! Temperory result holding the current addition to the TwistedSF() array. Changed to 4 in 2,4,0 for 2nd edge
+   REAL(ReKi)                   :: TwstdSFOld(2,4,0:1)                             ! Previous TwstdSF (i.e., TwstdSF from the previous node)
 
    INTEGER(IntKi)               :: I                                               ! Generic index.
    INTEGER(IntKi)               :: J                                               ! Loops through nodes / elements.
@@ -4831,6 +4858,7 @@ SUBROUTINE Coeff(p,InputFileData, ErrStat, ErrMsg)
       MBF(K,1,1) = p%TipMass(K)
       MBF(K,2,2) = p%TipMass(K)
       MBE(K,1,1) = p%TipMass(K)
+      MBE(K,2,2) = p%TipMass(K)
 
 
       DO J = 1,p%BldNodes    ! Loop through the blade nodes / elements
@@ -4846,7 +4874,9 @@ SUBROUTINE Coeff(p,InputFileData, ErrStat, ErrMsg)
          MBF    (K,2,2) = MBF    (K,2,2) + p%BElmntMass(J,K)*Shape2*Shape2
 
          Shape  = SHP( p%RNodesNorm(J), p%BldFlexL, p%BldEdgSh(:,K), 0, ErrStat, ErrMsg )
+         ShapeE2  = SHP( p%RNodesNorm(J), p%BldFlexL, p%BldEdg2Sh(:,K), 0, ErrStat, ErrMsg )
          MBE    (K,1,1) = MBE    (K,1,1) + p%BElmntMass(J,K)*Shape *Shape
+         MBE    (K,2,2) = MBE    (K,2,2) + p%BElmntMass(J,K)*ShapeE2*ShapeE2
 
 
       ! Integrate to find the generalized stiffness of the blade (not including centrifugal
@@ -4862,7 +4892,11 @@ SUBROUTINE Coeff(p,InputFileData, ErrStat, ErrMsg)
 
          ElmntStff      = p%StiffBE(K,J)*p%DRNodes(J)                       ! Edgewise stiffness of blade element J
          Shape  = SHP( p%RNodesNorm(J), p%BldFlexL, p%BldEdgSh(:,K), 2, ErrStat, ErrMsg )
+         ShapeE2 = SHP( p%RNodesNorm(J), p%BldFlexL, p%BldEdg2Sh(:,K), 2, ErrStat, ErrMsg )
          p%KBE    (K,1,1) = p%KBE    (K,1,1) + ElmntStff*Shape *Shape
+         p%KBE    (K,1,2) = p%KBE    (K,1,2) + ElmntStff*Shape*ShapeE2
+         p%KBE    (K,2,1) = p%KBE    (K,2,1) + ElmntStff*ShapeE2*Shape
+         p%KBE    (K,2,2) = p%KBE    (K,2,2) + ElmntStff*ShapeE2*ShapeE2
 
 
       ! Integrate to find the centrifugal-term of the generalized flapwise and edgewise
@@ -4876,9 +4910,10 @@ SUBROUTINE Coeff(p,InputFileData, ErrStat, ErrMsg)
          KBFCent(K,1,1) = KBFCent(K,1,1) + ElmntStff*Shape1*Shape1
          KBFCent(K,2,2) = KBFCent(K,2,2) + ElmntStff*Shape2*Shape2
 
-         Shape  = SHP( p%RNodesNorm(J), p%BldFlexL, p%BldEdgSh(:,K), 1, ErrStat, ErrMsg )
+         Shape   = SHP( p%RNodesNorm(J), p%BldFlexL, p%BldEdgSh(:,K), 1, ErrStat, ErrMsg )
+         ShapeE2 = SHP( p%RNodesNorm(J), p%BldFlexL, p%BldEdg2Sh(:,K), 1, ErrStat, ErrMsg )
          KBECent(K,1,1) = KBECent(K,1,1) + ElmntStff*Shape *Shape
-
+         KBECent(K,2,2) = KBECent(K,2,2) + ElmntStff*ShapeE2*ShapeE2
 
       ! Calculate the 2nd derivatives of the twisted shape functions:
 
@@ -4894,11 +4929,15 @@ SUBROUTINE Coeff(p,InputFileData, ErrStat, ErrMsg)
          p%TwistedSF(K,1,3,J,2) =  Shape*p%SThetaS(K,J)                  ! 2nd deriv. of Phi3(J) for blade K
          p%TwistedSF(K,2,3,J,2) =  Shape*p%CThetaS(K,J)                  ! 2nd deriv. of Psi3(J) for blade K
 
+         Shape  = SHP( p%RNodesNorm(J), p%BldFlexL, p%BldEdg2Sh(:,K), 2, ErrStat, ErrMsg )
+         p%TwistedSF(K,1,4,J,2) =  Shape*p%SThetaS(K,J)                  ! 2nd deriv. of Phi4(J) for blade K
+         p%TwistedSF(K,2,4,J,2) =  Shape*p%CThetaS(K,J)                  ! 2nd deriv. of Psi4(J) for blade K
+
 
       ! Integrate to find the 1st derivatives of the twisted shape functions:
 
          DO I = 1,2     ! Loop through Phi and Psi
-            DO L = 1,3  ! Loop through all blade DOFs
+            DO L = 1,4  ! Loop through all blade DOFs changed to 4 for edge DOF
                TwstdSF     (  I,L,  1) = p%TwistedSF(K,I,L,J,2)*0.5*p%DRNodes(J)
                p%TwistedSF   (K,I,L,J,1) = TwstdSF   ( I,L,  1)
             ENDDO       ! L - All blade DOFs
@@ -4908,7 +4947,7 @@ SUBROUTINE Coeff(p,InputFileData, ErrStat, ErrMsg)
       ! Add the effects from the (not yet used) portion of element J-1
 
             DO I = 1,2     ! Loop through Phi and Psi
-               DO L = 1,3  ! Loop through all blade DOFs
+               DO L = 1,4  ! Loop through all blade DOFs changed to 4 for edge DOF
                   p%TwistedSF(K,I,L,J,1) = p%TwistedSF(K,I,L,J,1) + p%TwistedSF(K,I,L,J-1,1) &
                                        + TwstdSFOld( I,L,  1)
                ENDDO       ! L - All blade DOFs
@@ -4919,7 +4958,7 @@ SUBROUTINE Coeff(p,InputFileData, ErrStat, ErrMsg)
       ! Integrate to find the twisted shape functions themselves (i.e., their zeroeth derivative):
 
          DO I = 1,2     ! Loop through Phi and Psi
-            DO L = 1,3  ! Loop through all blade DOFs
+            DO L = 1,4  ! Loop through all blade DOFs changed to 4 for edge DOF
                TwstdSF     (  I,L,  0) = p%TwistedSF(K,I,L,J,1)*0.5*p%DRNodes(J)
                p%TwistedSF   (K,I,L,J,0) = TwstdSF   ( I,L,  0)
             ENDDO       ! L - All blade DOFs
@@ -4929,7 +4968,7 @@ SUBROUTINE Coeff(p,InputFileData, ErrStat, ErrMsg)
       ! Add the effects from the (not yet used) portion of element J-1
 
             DO I = 1,2     ! Loop through Phi and Psi
-               DO L = 1,3  ! Loop through all blade DOFs
+               DO L = 1,4  ! Loop through all blade DOFs changed to 4 for edge DOF
                   p%TwistedSF(K,I,L,J,0) = p%TwistedSF(K,I,L,J,0) + p%TwistedSF(K,I,L,J-1,0) &
                                        + TwstdSFOld( I,L,  0)
                ENDDO       ! L - All blade DOFs
@@ -4939,8 +4978,8 @@ SUBROUTINE Coeff(p,InputFileData, ErrStat, ErrMsg)
 
       ! Integrate to find the blade axial reduction shape functions:
 
-         DO I = 1,3     ! Loop through all blade DOFs
-            DO L = 1,3  ! Loop through all blade DOFs
+         DO I = 1,4     ! Loop through all blade DOFs changed to 4 for edge DOF
+            DO L = 1,4  ! Loop through all blade DOFs changed to 4 for edge DOF
                AxRdBld    (  I,L  ) = 0.5*p%DRNodes(J)*(                          &
                                       p%TwistedSF(K,1,I,J,1)*p%TwistedSF(K,1,L,J,1) &
                                     + p%TwistedSF(K,2,I,J,1)*p%TwistedSF(K,2,L,J,1) )
@@ -4951,8 +4990,8 @@ SUBROUTINE Coeff(p,InputFileData, ErrStat, ErrMsg)
          IF ( J /= 1 )  THEN  ! All but the innermost blade element
       ! Add the effects from the (not yet used) portion of element J-1
 
-            DO I = 1,3     ! Loop through all blade DOFs
-               DO L = 1,3  ! Loop through all blade DOFs
+            DO I = 1,4     ! Loop through all blade DOFs changed to 4 for edge DOF
+               DO L = 1,4  ! Loop through all blade DOFs changed to 4 for edge DOF
                   p%AxRedBld(K,I,L,J) = p%AxRedBld(K,I,L,J) + p%AxRedBld(K,I,L,J-1)   &
                                     + AxRdBldOld(I,L)
                ENDDO       ! L - All blade DOFs
@@ -4997,20 +5036,22 @@ SUBROUTINE Coeff(p,InputFileData, ErrStat, ErrMsg)
          p%FreqBF(K,I,3) = Inv2Pi*SQRT( ( p%KBF(K,I,I) + KBFCent(K,I,I) )/  MBF(K,I,I)                )     ! Natural blade I-flap frequency w/  centrifugal stiffening and     tip mass effects
       ENDDO          ! I - Flap DOFs
 
-      p%FreqBE   (K,1,1) = Inv2Pi*SQRT(   p%KBE(K,1,1)                   /( MBE(K,1,1) - p%TipMass(K) ) )   ! Natural blade 1-edge frequency w/o centrifugal stiffening nor      tip mass effects
-      p%FreqBE   (K,1,2) = Inv2Pi*SQRT(   p%KBE(K,1,1)                   /  MBE(K,1,1)                )     ! Natural Blade 1-edge frequency w/o  centrifugal stiffening, but w/ tip mass effects
-      p%FreqBE   (K,1,3) = Inv2Pi*SQRT( ( p%KBE(K,1,1) + KBECent(K,1,1) )/  MBE(K,1,1)                )     ! Natural Blade 1-edge frequency w/  centrifugal stiffening and      tip mass effects
-
+      DO I = 1,NumBE     ! Loop through edge DOFs
+         p%FreqBE   (K,I,1) = Inv2Pi*SQRT(   p%KBE(K,I,I)                   /( MBE(K,I,I) - p%TipMass(K) ) )   ! Natural blade 1-edge frequency w/o centrifugal stiffening nor      tip mass effects
+         p%FreqBE   (K,I,2) = Inv2Pi*SQRT(   p%KBE(K,I,I)                   /  MBE(K,I,I)                )     ! Natural Blade 1-edge frequency w/o  centrifugal stiffening, but w/ tip mass effects
+         p%FreqBE   (K,I,3) = Inv2Pi*SQRT( ( p%KBE(K,I,I) + KBECent(K,I,I) )/  MBE(K,I,I)                )     ! Natural Blade 1-edge frequency w/  centrifugal stiffening and      tip mass effects
+      ENDDO          ! I - Edge DOFs 
 
       ! Calculate the generalized damping of the blades:
 
       DO I = 1,NumBF     ! Loop through flap DOFs
          DO L = 1,NumBF  ! Loop through flap DOFs
             p%CBF(K,I,L) = ( 0.01*p%BldFDamp(K,L) )*p%KBF(K,I,L)/( Pi*p%FreqBF(K,L,1) )
+            p%CBE(K,I,L) = ( 0.01*p%BldEDamp(K,L) )*p%KBE(K,I,L)/( Pi*p%FreqBE(K,L,1) )
          ENDDO       ! L - Flap DOFs
       ENDDO          ! I - Flap DOFs
 
-      p%CBE      (K,1,1) = ( 0.01*p%BldEDamp(K,1) )*p%KBE(K,1,1)/( Pi*p%FreqBE(K,1,1) )
+      
 
 
       ! Calculate the 2nd derivatives of the twisted shape functions at the blade root:
@@ -5026,6 +5067,10 @@ SUBROUTINE Coeff(p,InputFileData, ErrStat, ErrMsg)
       Shape  = SHP( 0.0_ReKi, p%BldFlexL, p%BldEdgSh(:,K), 2, ErrStat, ErrMsg )
       p%TwistedSF(K,1,3,0,2) =  Shape*p%SThetaS(K,0)        ! 2nd deriv. of Phi3(0) for blade K
       p%TwistedSF(K,2,3,0,2) =  Shape*p%CThetaS(K,0)        ! 2nd deriv. of Psi3(0) for blade K
+
+      Shape  = SHP( 0.0_ReKi, p%BldFlexL, p%BldEdg2Sh(:,K), 2, ErrStat, ErrMsg )
+      p%TwistedSF(K,1,4,0,2) =  Shape*p%SThetaS(K,0)        ! 2nd deriv. of Phi4(0) for blade K
+      p%TwistedSF(K,2,4,0,2) =  Shape*p%CThetaS(K,0)        ! 2nd deriv. of Psi4(0) for blade K
       
       
       ! Calculate the 2nd derivatives of the twisted shape functions at the tip:
@@ -5042,12 +5087,16 @@ SUBROUTINE Coeff(p,InputFileData, ErrStat, ErrMsg)
       p%TwistedSF(K,1,3,p%TipNode,2) =  Shape*p%SThetaS(K,p%TipNode)        ! 2nd deriv. of Phi3(p%TipNode) for blade K
       p%TwistedSF(K,2,3,p%TipNode,2) =  Shape*p%CThetaS(K,p%TipNode)        ! 2nd deriv. of Psi3(p%TipNode) for blade K
 
+      Shape  = SHP( 1.0_ReKi, p%BldFlexL, p%BldEdg2Sh(:,K), 2, ErrStat, ErrMsg )
+      p%TwistedSF(K,1,4,p%TipNode,2) =  Shape*p%SThetaS(K,p%TipNode)        ! 2nd deriv. of Phi3(p%TipNode) for blade K
+      p%TwistedSF(K,2,4,p%TipNode,2) =  Shape*p%CThetaS(K,p%TipNode)        ! 2nd deriv. of Psi3(p%TipNode) for blade K
+
 
       ! Integrate to find the 1st and zeroeth derivatives of the twisted shape functions
       !   at the tip:
 
       DO I = 1,2     ! Loop through Phi and Psi
-         DO L = 1,3  ! Loop through all blade DOFs
+         DO L = 1,4  ! Loop through all blade DOFs. Changed to 4 for edge
             p%TwistedSF(K,I,L,p%TipNode,1) = p%TwistedSF(K,I,L,p%BldNodes,1) + TwstdSFOld(I,L,1)
             p%TwistedSF(K,I,L,p%TipNode,0) = p%TwistedSF(K,I,L,p%BldNodes,0) + TwstdSFOld(I,L,0)
          ENDDO       ! L - All blade DOFs
@@ -5060,8 +5109,8 @@ SUBROUTINE Coeff(p,InputFileData, ErrStat, ErrMsg)
 
       ! Integrate to find the blade axial reduction shape functions at the tip:
 
-      DO I = 1,3     ! Loop through all blade DOFs
-         DO L = 1,3  ! Loop through all blade DOFs
+      DO I = 1,4     ! Loop through all blade DOFs Changed to 4 for edge
+         DO L = 1,4  ! Loop through all blade DOFs Changed to 4 for edge
             p%AxRedBld(K,I,L,p%TipNode) = p%AxRedBld(K,I,L,p%BldNodes) + AxRdBldOld(I,L)
          ENDDO       ! L - All blade DOFs
       ENDDO          ! I - All blade DOFs
@@ -5284,7 +5333,7 @@ END SUBROUTINE Coeff
 !!   INITQE1, on OoPDefl and IPDefl.
 !! Write messages to the screen if the specified initial tip displacements
 !!  are incompatible with the enabled DOFs.
-SUBROUTINE InitBlDefl ( p, InputFileData, InitQF1, InitQF2, InitQE1, ErrStat, ErrMsg )
+SUBROUTINE InitBlDefl ( p, InputFileData, InitQF1, InitQF2, InitQE1, InitQE2, ErrStat, ErrMsg )
 !..................................................................................................................................
 
 
@@ -5293,6 +5342,7 @@ SUBROUTINE InitBlDefl ( p, InputFileData, InitQF1, InitQF2, InitQE1, ErrStat, Er
    TYPE(ED_InputFile),      INTENT(IN)  :: InputFileData                           !< all the data in the ElastoDyn input file
 
    REAL(ReKi),              INTENT(OUT) :: InitQE1(p%NumBl)                        !< Initial edge deflection (output).
+   REAL(ReKi),              INTENT(OUT) :: InitQE2(p%NumBl)                        !< Initial edge deflection for mode 2 (output).
    REAL(ReKi),              INTENT(OUT) :: InitQF1(p%NumBl)                        !< Initial flap deflection for mode 1 (output).
    REAL(ReKi),              INTENT(OUT) :: InitQF2(p%NumBl)                        !< Initial flap deflection for mode 2 (output).
 
@@ -5301,7 +5351,7 @@ SUBROUTINE InitBlDefl ( p, InputFileData, InitQF1, InitQF2, InitQE1, ErrStat, Er
 
 
       ! Local variables:
-   REAL(ReKi)                   :: A(2,3)                                          ! Augmented matrix for solution of initial deflections.
+   REAL(ReKi)                   :: A(2,3)                                          ! Augmented matrix for solution of initial deflections. Changed to 4 for edge2 DOF
    REAL(ReKi)                   :: CosPitch                                        ! Cosine of the pitch for this blade.
    REAL(ReKi)                   :: Det                                             ! Determinate of right-hand side of A.
    REAL(ReKi)                   :: SinPitch                                        ! Sine of the pitch for this blade.
@@ -5321,6 +5371,7 @@ SUBROUTINE InitBlDefl ( p, InputFileData, InitQF1, InitQF2, InitQE1, ErrStat, Er
    ErrMsg  = ''
 
    InitQE1 = 0.0
+   InitQE2 = 0.0
    InitQF1 = 0.0
    InitQF2 = 0.0
    !bjj: replace InitQF1 and InitQF2 with an array to avoid so much duplication of logic here...
@@ -5348,10 +5399,12 @@ SUBROUTINE InitBlDefl ( p, InputFileData, InitQF1, InitQF2, InitQE1, ErrStat, Er
 
             InitQF1(K) = ( A(1,3)*A(2,2) - A(1,2)*A(2,3) )/DET
             InitQE1(K) = ( A(1,1)*A(2,3) - A(1,3)*A(2,1) )/DET
+            InitQE2(K) = InitQE1(K)
 
          ELSEIF ( .NOT. InputFileData%EdgeDOF )  THEN                     ! Blade edge mode 1 is not enabled which caused DET = 0.
 
             InitQE1(K) = 0.0
+            InitQE2(K) = InitQE1(K)
 
             IF ( .NOT. EqualRealNos( A(1,1), 0.0_ReKi ) )  THEN
                IF ( .NOT. EqualRealNos( A(2,1), 0.0_ReKi ) )  THEN        ! Find a solution of the 2 equations in 1 variable that
@@ -5397,6 +5450,7 @@ SUBROUTINE InitBlDefl ( p, InputFileData, InitQF1, InitQF2, InitQE1, ErrStat, Er
 
             InitQF1(K) = 0.0
             InitQE1(K) = 0.0
+            InitQE2(K) = InitQE1(K)
 
             IF ( ( InputFileData%OoPDefl /= 0.0 ) .OR. ( InputFileData%IPDefl /= 0.0 ) )  THEN
                CALL CheckError( ErrID_Warn, Ignore )
@@ -5418,10 +5472,12 @@ SUBROUTINE InitBlDefl ( p, InputFileData, InitQF1, InitQF2, InitQE1, ErrStat, Er
             IF ( .NOT. EqualRealNos( DET, 0.0_ReKi ) ) THEN      ! Apply all flap deflection to mode 2
                InitQF2 = ( A(1,3)*A(2,2) - A(1,2)*A(2,3) )/DET
                InitQE1 = ( A(1,1)*A(2,3) - A(1,3)*A(2,1) )/DET
+               InitQE2(K) = InitQE1(K)
 
             ELSEIF ( .NOT. InputFileData%EdgeDOF )  THEN          ! Blade edge mode 1 is not enabled which caused DET = 0.
 
                InitQE1(K) = 0.0
+               InitQE2(K) = InitQE1(K)
 
                IF ( .NOT. EqualRealNos( A(1,1), 0.0_ReKi ) )  THEN
                   IF ( .NOT. EqualRealNos( A(2,1), 0.0_ReKi ) )   THEN      ! Find a solution of the 2 equations in 1 variable that
@@ -5461,6 +5517,7 @@ SUBROUTINE InitBlDefl ( p, InputFileData, InitQF1, InitQF2, InitQE1, ErrStat, Er
                                                   ! the initial tip displacements.
                InitQF2(K) = 0.0
                InitQE1(K) = 0.0
+               InitQE2(K) = InitQE1(K)
 
                IF ( .NOT. EqualRealNos( InputFileData%OoPDefl,  0.0_ReKi ) .OR. &
                     .NOT. EqualRealNos( InputFileData%IPDefl,   0.0_ReKi ) )  THEN
@@ -5477,6 +5534,7 @@ SUBROUTINE InitBlDefl ( p, InputFileData, InitQF1, InitQF2, InitQE1, ErrStat, Er
                IF ( .NOT. EqualRealNos( A(2,2), 0.0_ReKi ) )  THEN         ! Find a solution of the 2 equations in 1 variable that minimizes
                                                                            !  the sum of the squares of the equation's residuals.
                   InitQE1(K) = ( A(1,2)*A(1,3) + A(2,2)*A(2,3) )/( A(1,2)**2 + A(2,2)**2 )
+                  InitQE2(K) = InitQE1(K)
 
                   TotResid = SQRT( ( A(1,2)*InitQE1(K) - A(1,3) )**2 + ( A(2,2)*InitQE1(K) - A(2,3) )**2)
 
@@ -5487,6 +5545,7 @@ SUBROUTINE InitBlDefl ( p, InputFileData, InitQF1, InitQF2, InitQE1, ErrStat, Er
                ELSE
 
                   InitQE1(K) = A(1,3)/A(1,2)
+                  InitQE2(K) = InitQE1(K)
 
                   IF ( .NOT. EqualRealNos( InputFileData%IPDefl, 0.0_ReKi ) )  THEN
                      CALL CheckError( ErrID_Warn, BadIP )
@@ -5502,8 +5561,10 @@ SUBROUTINE InitBlDefl ( p, InputFileData, InitQF1, InitQF2, InitQE1, ErrStat, Er
 
                IF ( .NOT. EqualRealNos( A(2,2), 0.0_ReKi ) )  THEN
                   InitQE1(K) = A(2,3)/A(2,2)
+                  InitQE2(K) = InitQE1(K)
                ELSE
                   InitQE1(K) = 0.0
+                  InitQE2(K) = InitQE1(K)
 
                   IF ( .NOT. EqualRealNos( InputFileData%IPDefl,  0.0_ReKi ) )  THEN
                      CALL CheckError( ErrID_Warn, BadIP )
@@ -5949,7 +6010,20 @@ SUBROUTINE SetEnabledDOFIndexArrays( p )
 
       ENDIF
    ENDDO          ! K - Blades
+ 
+  DO K = 1,p%NumBl ! Loop through all blades
+      IF ( p%DOF_Flag(DOF_BE(K,2)) )  THEN  ! 2nd blade edge.
 
+         p%DOFs%NActvDOF = p%DOFs%NActvDOF + 1
+         p%DOFs%NPSBE(K) = p%DOFs%NPSBE(K) + 1
+         p%DOFs%NPSE (K) = p%DOFs%NPSE (K) + 1
+
+         p%DOFs%PS      (  p%DOFs%NActvDOF) = DOF_BE(K,2)
+         p%DOFs%PSBE    (K,p%DOFs%NPSBE(K)) = DOF_BE(K,2)
+         p%DOFs%PSE     (K,p%DOFs%NPSE (K)) = DOF_BE(K,2)
+
+      ENDIF
+   ENDDO 
 
 
       ! Compute the sorted (from smallest to largest p%DOFs index) version of PS(),
@@ -6211,10 +6285,12 @@ SUBROUTINE SetCoordSy( t, CoordSys, RtHSdat, BlPitch, p, x, ErrStat, ErrMsg )
 
          ThetaOoP =   p%TwistedSF(K,1,1,J,1)*x%QT( DOF_BF(K,1) ) &
                     + p%TwistedSF(K,1,2,J,1)*x%QT( DOF_BF(K,2) ) &
-                    + p%TwistedSF(K,1,3,J,1)*x%QT( DOF_BE(K,1) )
+                    + p%TwistedSF(K,1,3,J,1)*x%QT( DOF_BE(K,1) ) &
+                    + p%TwistedSF(K,1,4,J,1)*x%QT( DOF_BE(K,2) )
          ThetaIP  = - p%TwistedSF(K,2,1,J,1)*x%QT( DOF_BF(K,1) ) &
                     - p%TwistedSF(K,2,2,J,1)*x%QT( DOF_BF(K,2) ) &
-                    - p%TwistedSF(K,2,3,J,1)*x%QT( DOF_BE(K,1) )
+                    - p%TwistedSF(K,1,3,J,1)*x%QT( DOF_BE(K,1) ) &
+                    - p%TwistedSF(K,1,4,J,1)*x%QT( DOF_BE(K,2) )
 
          ThetaLxb = p%CThetaS(K,J)*ThetaIP - p%SThetaS(K,J)*ThetaOoP
          ThetaLyb = p%SThetaS(K,J)*ThetaIP + p%CThetaS(K,J)*ThetaOoP
@@ -6685,17 +6761,23 @@ SUBROUTINE CalculatePositions( p, x, CoordSys, RtHSdat )
       ! Calculate the position vector of the tip:
       RtHSdat%rS0S(:,K,p%TipNode) = ( p%TwistedSF(K,1,1,p%TipNode,0)*x%QT( DOF_BF(K,1) ) &                                       ! Position vector from the blade root (point S(0)) to the blade tip (point S(p%BldFlexL)).
                                     + p%TwistedSF(K,1,2,p%TipNode,0)*x%QT( DOF_BF(K,2) ) &
-                                    + p%TwistedSF(K,1,3,p%TipNode,0)*x%QT( DOF_BE(K,1) )                     )*CoordSys%j1(K,:) &
+                                    + p%TwistedSF(K,1,3,p%TipNode,0)*x%QT( DOF_BE(K,1) ) &
+                                    + p%TwistedSF(K,1,4,p%TipNode,0)*x%QT( DOF_BE(K,2) )                     )*CoordSys%j1(K,:) &
                                   + ( p%TwistedSF(K,2,1,p%TipNode,0)*x%QT( DOF_BF(K,1) ) &
                                     + p%TwistedSF(K,2,2,p%TipNode,0)*x%QT( DOF_BF(K,2) ) &
-                                    + p%TwistedSF(K,2,3,p%TipNode,0)*x%QT( DOF_BE(K,1) )                     )*CoordSys%j2(K,:) &
+                                    + p%TwistedSF(K,2,3,p%TipNode,0)*x%QT( DOF_BE(K,1) ) &
+                                    + p%TwistedSF(K,2,4,p%TipNode,0)*x%QT( DOF_BE(K,2) )                     )*CoordSys%j2(K,:) &
                                   + ( p%BldFlexL - 0.5* &
                                   (      p%AxRedBld(K,1,1,p%TipNode)*x%QT( DOF_BF(K,1) )*x%QT( DOF_BF(K,1) ) &
                                     +    p%AxRedBld(K,2,2,p%TipNode)*x%QT( DOF_BF(K,2) )*x%QT( DOF_BF(K,2) ) &
                                     +    p%AxRedBld(K,3,3,p%TipNode)*x%QT( DOF_BE(K,1) )*x%QT( DOF_BE(K,1) ) &
+                                    +    p%AxRedBld(K,4,4,p%TipNode)*x%QT( DOF_BE(K,2) )*x%QT( DOF_BE(K,2) ) & 
                                     + 2.*p%AxRedBld(K,1,2,p%TipNode)*x%QT( DOF_BF(K,1) )*x%QT( DOF_BF(K,2) ) &
                                     + 2.*p%AxRedBld(K,2,3,p%TipNode)*x%QT( DOF_BF(K,2) )*x%QT( DOF_BE(K,1) ) &
-                                    + 2.*p%AxRedBld(K,1,3,p%TipNode)*x%QT( DOF_BF(K,1) )*x%QT( DOF_BE(K,1) ) ) )*CoordSys%j3(K,:)
+                                    + 2.*p%AxRedBld(K,1,3,p%TipNode)*x%QT( DOF_BF(K,1) )*x%QT( DOF_BE(K,1) ) &
+                                    + 2.*p%AxRedBld(K,1,4,p%TipNode)*x%QT( DOF_BF(K,1) )*x%QT( DOF_BE(K,2) ) &
+                                    + 2.*p%AxRedBld(K,2,4,p%TipNode)*x%QT( DOF_BF(K,2) )*x%QT( DOF_BE(K,2) ) &
+                                    + 2.*p%AxRedBld(K,3,4,p%TipNode)*x%QT( DOF_BE(K,1) )*x%QT( DOF_BE(K,2) ) ) )*CoordSys%j3(K,:)
       RtHSdat%rQS (:,K,p%TipNode) = RtHSdat%rS0S(:,K,p%TipNode) + p%HubRad*CoordSys%j3(K,:)                                      ! Position vector from apex of rotation (point Q) to the blade tip (point S(p%BldFlexL)).
       RtHSdat%rS  (:,K,p%TipNode) = RtHSdat%rQS (:,K,p%TipNode) + RtHSdat%rQ                                                     ! Position vector from inertial frame origin      to the blade tip (point S(p%BldFlexL)).
       
@@ -6716,17 +6798,23 @@ SUBROUTINE CalculatePositions( p, x, CoordSys, RtHSdat )
 
          RtHSdat%rS0S(:,K,J) = (  p%TwistedSF(K,1,1,J,0)*x%QT( DOF_BF(K,1) ) &                                                   ! Position vector from the blade root (point S(0)) to the current node (point S(RNodes(J)).
                                 + p%TwistedSF(K,1,2,J,0)*x%QT( DOF_BF(K,2) ) &
-                                + p%TwistedSF(K,1,3,J,0)*x%QT( DOF_BE(K,1) )                          )*CoordSys%j1(K,:) &
+                                + p%TwistedSF(K,1,3,J,0)*x%QT( DOF_BE(K,1) ) &
+                                + p%TwistedSF(K,1,4,J,0)*x%QT( DOF_BE(K,2) )                          )*CoordSys%j1(K,:) &
                             + (   p%TwistedSF(K,2,1,J,0)*x%QT( DOF_BF(K,1) ) &
                                 + p%TwistedSF(K,2,2,J,0)*x%QT( DOF_BF(K,2) ) &
-                                + p%TwistedSF(K,2,3,J,0)*x%QT( DOF_BE(K,1) )                          )*CoordSys%j2(K,:) &
+                                + p%TwistedSF(K,2,3,J,0)*x%QT( DOF_BE(K,1) ) &
+                                + p%TwistedSF(K,2,4,J,0)*x%QT( DOF_BE(K,2) )                          )*CoordSys%j2(K,:) &
                             + (  p%RNodes(J) - 0.5* &
                               (      p%AxRedBld(K,1,1,J)*x%QT( DOF_BF(K,1) )*x%QT( DOF_BF(K,1) ) &
                                +     p%AxRedBld(K,2,2,J)*x%QT( DOF_BF(K,2) )*x%QT( DOF_BF(K,2) ) &
                                +     p%AxRedBld(K,3,3,J)*x%QT( DOF_BE(K,1) )*x%QT( DOF_BE(K,1) ) &
+                               +     p%AxRedBld(K,4,4,J)*x%QT( DOF_BE(K,2) )*x%QT( DOF_BE(K,2) ) &                             
                                + 2.0*p%AxRedBld(K,1,2,J)*x%QT( DOF_BF(K,1) )*x%QT( DOF_BF(K,2) ) &
                                + 2.0*p%AxRedBld(K,2,3,J)*x%QT( DOF_BF(K,2) )*x%QT( DOF_BE(K,1) ) &
-                               + 2.0*p%AxRedBld(K,1,3,J)*x%QT( DOF_BF(K,1) )*x%QT( DOF_BE(K,1) )    ) )*CoordSys%j3(K,:)
+                               + 2.0*p%AxRedBld(K,1,3,J)*x%QT( DOF_BF(K,1) )*x%QT( DOF_BE(K,1) ) &
+                               + 2.0*p%AxRedBld(K,1,4,J)*x%QT( DOF_BF(K,1) )*x%QT( DOF_BE(K,2) ) &
+                               + 2.0*p%AxRedBld(K,2,4,J)*x%QT( DOF_BF(K,2) )*x%QT( DOF_BE(K,2) ) &
+                               + 2.0*p%AxRedBld(K,3,4,J)*x%QT( DOF_BE(K,1) )*x%QT( DOF_BE(K,2) ) ) )*CoordSys%j3(K,:)
          RtHSdat%rQS (:,K,J) = RtHSdat%rS0S(:,K,J) + p%HubRad*CoordSys%j3(K,:)                                                ! Position vector from apex of rotation (point Q) to the current node (point S(RNodes(J)).
          RtHSdat%rS  (:,K,J) = RtHSdat%rQS (:,K,J) + RtHSdat%rQ                                                               ! Position vector from inertial frame origin      to the current node (point S(RNodes(J)).
 
@@ -6779,8 +6867,6 @@ SUBROUTINE CalculateAngularPosVelPAcc( p, x, CoordSys, RtHSdat )
    TYPE(ED_RtHndSide),           INTENT(INOUT)  :: RtHSdat     !< data from the RtHndSid module (contains positions to be set)
 
       !Local variables
-   
-   REAL(ReKi)                   :: AngVelHM  (3)                                   ! Angular velocity of eleMent J of blade K (body M) in the hub (body H).
 !   REAL(ReKi)                   :: AngVelEN  (3)                                   ! Angular velocity of the nacelle (body N) in the inertia frame (body E for earth).
    REAL(ReKi)                   :: AngAccELt (3)                                   ! Portion of the angular acceleration of the low-speed shaft (body L) in the inertia frame (body E for earth) associated with everything but the QD2T()'s.
    INTEGER(IntKi)               :: J                                               ! Counter for elements
@@ -6900,25 +6986,62 @@ ENDIF
 
    DO K = 1,p%NumBl ! Loop through all blades
 
-      DO J = 0,p%TipNode ! Loop through the blade nodes / elements
+      ! Define the partial angular velocities of the tip (body M(p%BldFlexL)) in the  inertia frame:
+      ! NOTE: PAngVelEM(K,J,I,D,:) = the Dth-derivative of the partial angular velocity of DOF I for body M of blade K, element J in body E.
+
+      RtHSdat%PAngVelEM(K,p%TipNode,          :,0,:) = RtHSdat%PAngVelEH(:,0,:)
+      RtHSdat%PAngVelEM(K,p%TipNode,DOF_BF(K,1),0,:) = - p%TwistedSF(K,2,1,p%TipNode,1)*CoordSys%j1(K,:) &
+                                                       + p%TwistedSF(K,1,1,p%TipNode,1)*CoordSys%j2(K,:)
+      RtHSdat%PAngVelEM(K,p%TipNode,DOF_BF(K,2),0,:) = - p%TwistedSF(K,2,2,p%TipNode,1)*CoordSys%j1(K,:) &
+                                                       + p%TwistedSF(K,1,2,p%TipNode,1)*CoordSys%j2(K,:)
+      RtHSdat%PAngVelEM(K,p%TipNode,DOF_BE(K,1),0,:) = - p%TwistedSF(K,2,3,p%TipNode,1)*CoordSys%j1(K,:) &
+                                                       + p%TwistedSF(K,1,3,p%TipNode,1)*CoordSys%j2(K,:)
+      RtHSdat%PAngVelEM(K,p%TipNode,DOF_BE(K,2),0,:) = - p%TwistedSF(K,2,4,p%TipNode,1)*CoordSys%j1(K,:) &
+                                                       + p%TwistedSF(K,1,4,p%TipNode,1)*CoordSys%j2(K,:)
+   !           AngVelHM(K,p%TipNode              ,:) =  RtHSdat%AngVelEH + x%QDT(DOF_BF(K,1))*RtHSdat%PAngVelEM(K,p%TipNode,DOF_BF(K,1),0,:) & ! Currently
+   !                                                                     + x%QDT(DOF_BF(K,2))*RtHSdat%PAngVelEM(K,p%TipNode,DOF_BF(K,2),0,:) & ! unused
+   !                                                                     + x%QDT(DOF_BE(K,1))*RtHSdat%PAngVelEM(K,p%TipNode,DOF_BE(K,1),0,:)   ! calculations
+       RtHSdat%AngPosHM(:,K,p%TipNode) =        x%QT (DOF_BF(K,1))*RtHSdat%PAngVelEM(K,p%TipNode,DOF_BF(K,1),0,:) &
+                                              + x%QT (DOF_BF(K,2))*RtHSdat%PAngVelEM(K,p%TipNode,DOF_BF(K,2),0,:) &
+                                              + x%QT (DOF_BE(K,1))*RtHSdat%PAngVelEM(K,p%TipNode,DOF_BE(K,1),0,:) &
+                                              + x%QT (DOF_BE(K,2))*RtHSdat%PAngVelEM(K,p%TipNode,DOF_BE(K,2),0,:)
+
+
+      ! Define the 1st derivatives of the partial angular velocities of the tip
+      !   (body M(p%BldFlexL)) in the inertia frame:
+
+   ! NOTE: These are currently unused by the code, therefore, they need not
+   !       be calculated.  Thus, they are currently commented out.  If it
+   !       turns out that they are ever needed (i.e., if inertias of the
+   !       blade elements are ever added, etc...) simply uncomment out these
+   !       computations:
+   !   RtHSdat%PAngVelEM(K,p%TipNode,          :,1,:) = RtHSdat%PAngVelEH(:,1,:)
+   !   RtHSdat%PAngVelEM(K,p%TipNode,DOF_BF(K,1),1,:) = CROSS_PRODUCT(   RtHSdat%AngVelEH, RtHSdat%PAngVelEM(K,p%TipNode,DOF_BF(K,1),0,:)    )
+   !   RtHSdat%PAngVelEM(K,p%TipNode,DOF_BF(K,2),1,:) = CROSS_PRODUCT(   RtHSdat%AngVelEH, RtHSdat%PAngVelEM(K,p%TipNode,DOF_BF(K,2),0,:)    )
+   !   RtHSdat%PAngVelEM(K,p%TipNode,DOF_BE(K,1),1,:) = CROSS_PRODUCT(   RtHSdat%AngVelEH, RtHSdat%PAngVelEM(K,p%TipNode,DOF_BE(K,1),0,:)    )
+
+
+      DO J = 1,p%BldNodes ! Loop through the blade nodes / elements
       ! Define the partial angular velocities of the current node (body M(RNodes(J))) in the inertia frame:
       ! NOTE: PAngVelEM(K,J,I,D,:) = the Dth-derivative of the partial angular velocity
       !   of DOF I for body M of blade K, element J in body E.
 
          RtHSdat%PAngVelEM(K,J,          :,0,:) = RtHSdat%PAngVelEH(:,0,:)
          RtHSdat%PAngVelEM(K,J,DOF_BF(K,1),0,:) = - p%TwistedSF(K,2,1,J,1)*CoordSys%j1(K,:) &
-                                                  + p%TwistedSF(K,1,1,J,1)*CoordSys%j2(K,:)
+                                                + p%TwistedSF(K,1,1,J,1)*CoordSys%j2(K,:)
          RtHSdat%PAngVelEM(K,J,DOF_BF(K,2),0,:) = - p%TwistedSF(K,2,2,J,1)*CoordSys%j1(K,:) &
-                                                  + p%TwistedSF(K,1,2,J,1)*CoordSys%j2(K,:)
+                                                + p%TwistedSF(K,1,2,J,1)*CoordSys%j2(K,:)
          RtHSdat%PAngVelEM(K,J,DOF_BE(K,1),0,:) = - p%TwistedSF(K,2,3,J,1)*CoordSys%j1(K,:) &
-                                                  + p%TwistedSF(K,1,3,J,1)*CoordSys%j2(K,:)
-                                      AngVelHM  =  RtHSdat%AngVelEH + x%QDT(DOF_BF(K,1))*RtHSdat%PAngVelEM(K,J,DOF_BF(K,1),0,:) &
-                                                                    + x%QDT(DOF_BF(K,2))*RtHSdat%PAngVelEM(K,J,DOF_BF(K,2),0,:) &
-                                                                    + x%QDT(DOF_BE(K,1))*RtHSdat%PAngVelEM(K,J,DOF_BE(K,1),0,:)
-          RtHSdat%AngVelEM(:,J,K              ) =  RtHSdat%AngVelEH + AngVelHM
-          RtHSdat%AngPosHM(:,K,J              ) =     x%QT (DOF_BF(K,1))*RtHSdat%PAngVelEM(K,J,DOF_BF(K,1),0,:) &
+                                                + p%TwistedSF(K,1,3,J,1)*CoordSys%j2(K,:)
+         RtHSdat%PAngVelEM(K,J,DOF_BE(K,2),0,:) = - p%TwistedSF(K,2,4,J,1)*CoordSys%j1(K,:) &
+                                                + p%TwistedSF(K,1,4,J,1)*CoordSys%j2(K,:)
+!                 AngVelHM(K,J              ,:) =  RtHSdat%AngVelEH + x%QDT(DOF_BF(K,1))*RtHSdat%PAngVelEM(K,J,DOF_BF(K,1),0,:) & ! Currently
+!                                                                   + x%QDT(DOF_BF(K,2))*RtHSdat%PAngVelEM(K,J,DOF_BF(K,2),0,:) & ! unused
+!                                                                   + x%QDT(DOF_BE(K,1))*RtHSdat%PAngVelEM(K,J,DOF_BE(K,1),0,:)   ! calculations
+          RtHSdat%AngPosHM(:,K,J              ) =             x%QT (DOF_BF(K,1))*RtHSdat%PAngVelEM(K,J,DOF_BF(K,1),0,:) &
                                                     + x%QT (DOF_BF(K,2))*RtHSdat%PAngVelEM(K,J,DOF_BF(K,2),0,:) &
-                                                    + x%QT (DOF_BE(K,1))*RtHSdat%PAngVelEM(K,J,DOF_BE(K,1),0,:)
+                                                    + x%QT (DOF_BE(K,1))*RtHSdat%PAngVelEM(K,J,DOF_BE(K,1),0,:) &
+                                                    + x%QT (DOF_BE(K,2))*RtHSdat%PAngVelEM(K,J,DOF_BE(K,2),0,:)
 
 
       ! Define the 1st derivatives of the partial angular velocities of the current node (body M(RNodes(J))) in the inertia frame:
@@ -7278,44 +7401,64 @@ SUBROUTINE CalculateLinearVelPAcc( p, x, CoordSys, RtHSdat )
          EwHXrQS = CROSS_PRODUCT(  RtHSdat%AngVelEH, RtHSdat%rQS(:,K,J) )
 
          RtHSdat%PLinVelES(K,J,          :,:,:) = RtHSdat%PLinVelEQ(:,:,:)
-         RtHSdat%PLinVelES(K,J,DOF_BF(K,1),0,:) = p%TwistedSF(K,1,1,J,0)                          *CoordSys%j1(K,:) &  !bjj: this line can be optimized
+         RtHSdat%PLinVelES(K,J,DOF_BF(K,1),0,:) = p%TwistedSF(K,1,1,J,0)                          *CoordSys%j1(K,:) &  !bjj: this line can be optimized !Updated by NJ for 2nd Edge
                                                 + p%TwistedSF(K,2,1,J,0)                          *CoordSys%j2(K,:) &
                                                 - (   p%AxRedBld(K,1,1,J)*x%QT ( DOF_BF(K,1) ) &
                                                     + p%AxRedBld(K,1,2,J)*x%QT ( DOF_BF(K,2) ) &
-                                                    + p%AxRedBld(K,1,3,J)*x%QT ( DOF_BE(K,1) )   )*CoordSys%j3(K,:)
+                                                    + p%AxRedBld(K,1,3,J)*x%QT ( DOF_BE(K,1) ) &
+                                                    + p%AxRedBld(K,1,4,J)*x%QT ( DOF_BE(K,2) )   )*CoordSys%j3(K,:)
          RtHSdat%PLinVelES(K,J,DOF_BE(K,1),0,:) = p%TwistedSF(K,1,3,J,0)                          *CoordSys%j1(K,:) &
                                                 + p%TwistedSF(K,2,3,J,0)                          *CoordSys%j2(K,:) &
                                                 - (   p%AxRedBld(K,3,3,J)*x%QT ( DOF_BE(K,1) ) &
                                                     + p%AxRedBld(K,2,3,J)*x%QT ( DOF_BF(K,2) ) &
-                                                    + p%AxRedBld(K,1,3,J)*x%QT ( DOF_BF(K,1) )   )*CoordSys%j3(K,:)
+                                                    + p%AxRedBld(K,1,3,J)*x%QT ( DOF_BF(K,1) ) &
+                                                    + p%AxRedBld(K,3,4,J)*x%QT ( DOF_BE(K,2) )   )*CoordSys%j3(K,:)
          RtHSdat%PLinVelES(K,J,DOF_BF(K,2),0,:) = p%TwistedSF(K,1,2,J,0)                          *CoordSys%j1(K,:) &
                                                 + p%TwistedSF(K,2,2,J,0)                          *CoordSys%j2(K,:) &
                                                 - (   p%AxRedBld(K,2,2,J)*x%QT ( DOF_BF(K,2) ) &
                                                     + p%AxRedBld(K,1,2,J)*x%QT ( DOF_BF(K,1) ) &
-                                                    + p%AxRedBld(K,2,3,J)*x%QT ( DOF_BE(K,1) )   )*CoordSys%j3(K,:)
+                                                    + p%AxRedBld(K,2,3,J)*x%QT ( DOF_BE(K,1) ) &
+                                                    + p%AxRedBld(K,2,4,J)*x%QT ( DOF_BE(K,2) )   )*CoordSys%j3(K,:)
+         RtHSdat%PLinVelES(K,J,DOF_BE(K,2),0,:) = p%TwistedSF(K,1,4,J,0)                          *CoordSys%j1(K,:) & 
+                                                + p%TwistedSF(K,2,4,J,0)                          *CoordSys%j2(K,:) &
+                                                - (   p%AxRedBld(K,4,4,J)*x%QT ( DOF_BE(K,2) ) &
+                                                    + p%AxRedBld(K,3,4,J)*x%QT ( DOF_BE(K,1) ) &
+                                                    + p%AxRedBld(K,2,4,J)*x%QT ( DOF_BF(K,2) ) &
+                                                    + p%AxRedBld(K,1,4,J)*x%QT ( DOF_BF(K,1) )   )*CoordSys%j3(K,:)
 
          TmpVec1 = CROSS_PRODUCT( RtHSdat%AngVelEH, RtHSdat%PLinVelES(K,J,DOF_BF(K,1),0,:) )
          TmpVec2 = CROSS_PRODUCT( RtHSdat%AngVelEH, RtHSdat%PLinVelES(K,J,DOF_BE(K,1),0,:) )
          TmpVec3 = CROSS_PRODUCT( RtHSdat%AngVelEH, RtHSdat%PLinVelES(K,J,DOF_BF(K,2),0,:) )
+         TmpVec4 = CROSS_PRODUCT( RtHSdat%AngVelEH, RtHSdat%PLinVelES(K,J,DOF_BE(K,2),0,:) ) !Updated by NJ for 2nd edge
 
-         RtHSdat%PLinVelES(K,J,DOF_BF(K,1),1,:) = TmpVec1 &
-                                                - (   p%AxRedBld(K,1,1,J)*x%QDT( DOF_BF(K,1) ) &
-                                                    + p%AxRedBld(K,1,2,J)*x%QDT( DOF_BF(K,2) ) &
-                                                    + p%AxRedBld(K,1,3,J)*x%QDT( DOF_BE(K,1) )   )*CoordSys%j3(K,:)
+         RtHSdat%PLinVelES(K,J,DOF_BF(K,1),1,:) = TmpVec1 &                                            !Section updated by NJ for 2nd edge
+                                                - (   p%AxRedBld(K,1,1,J)*x%QT ( DOF_BF(K,1) ) &
+                                                    + p%AxRedBld(K,1,2,J)*x%QT ( DOF_BF(K,2) ) &
+                                                    + p%AxRedBld(K,1,3,J)*x%QT ( DOF_BE(K,1) ) &
+                                                    + p%AxRedBld(K,1,4,J)*x%QT ( DOF_BE(K,2) )   )*CoordSys%j3(K,:) 
          RtHSdat%PLinVelES(K,J,DOF_BE(K,1),1,:) = TmpVec2 &
-                                                - (   p%AxRedBld(K,3,3,J)*x%QDT( DOF_BE(K,1) ) &
-                                                    + p%AxRedBld(K,2,3,J)*x%QDT( DOF_BF(K,2) ) &
-                                                    + p%AxRedBld(K,1,3,J)*x%QDT( DOF_BF(K,1) )   )*CoordSys%j3(K,:)
+                                                - (   p%AxRedBld(K,3,3,J)*x%QT ( DOF_BE(K,1) ) &
+                                                    + p%AxRedBld(K,2,3,J)*x%QT ( DOF_BF(K,2) ) &
+                                                    + p%AxRedBld(K,1,3,J)*x%QT ( DOF_BF(K,1) ) &
+                                                    + p%AxRedBld(K,3,4,J)*x%QT ( DOF_BE(K,2) )   )*CoordSys%j3(K,:)
          RtHSdat%PLinVelES(K,J,DOF_BF(K,2),1,:) = TmpVec3 &
-                                                - (   p%AxRedBld(K,2,2,J)*x%QDT( DOF_BF(K,2) ) &
-                                                    + p%AxRedBld(K,1,2,J)*x%QDT( DOF_BF(K,1) ) &
-                                                    + p%AxRedBld(K,2,3,J)*x%QDT( DOF_BE(K,1) )   )*CoordSys%j3(K,:)
+                                                - (   p%AxRedBld(K,2,2,J)*x%QT ( DOF_BF(K,2) ) &
+                                                    + p%AxRedBld(K,1,2,J)*x%QT ( DOF_BF(K,1) ) &   
+                                                    + p%AxRedBld(K,2,3,J)*x%QT ( DOF_BE(K,1) ) &
+                                                    + p%AxRedBld(K,2,4,J)*x%QT ( DOF_BE(K,2) )   )*CoordSys%j3(K,:)
+         RtHSdat%PLinVelES(K,J,DOF_BE(K,2),1,:) = TmpVec4 &
+                                                - (   p%AxRedBld(K,4,4,J)*x%QT ( DOF_BE(K,2) ) &
+                                                    + p%AxRedBld(K,3,4,J)*x%QT ( DOF_BE(K,1) ) &
+                                                    + p%AxRedBld(K,2,4,J)*x%QT ( DOF_BF(K,2) ) &
+                                                    + p%AxRedBld(K,1,4,J)*x%QT ( DOF_BF(K,1) )   )*CoordSys%j3(K,:)
 
          LinVelHS                 = x%QDT( DOF_BF(K,1) )*RtHSdat%PLinVelES(K,J,DOF_BF(K,1),0,:) &
                                   + x%QDT( DOF_BE(K,1) )*RtHSdat%PLinVelES(K,J,DOF_BE(K,1),0,:) &
+                                  + x%QDT( DOF_BE(K,2) )*RtHSdat%PLinVelES(K,J,DOF_BE(K,2),0,:) &
                                   + x%QDT( DOF_BF(K,2) )*RtHSdat%PLinVelES(K,J,DOF_BF(K,2),0,:)
          RtHSdat%LinAccESt(:,K,J) = x%QDT( DOF_BF(K,1) )*RtHSdat%PLinVelES(K,J,DOF_BF(K,1),1,:) &
                                   + x%QDT( DOF_BE(K,1) )*RtHSdat%PLinVelES(K,J,DOF_BE(K,1),1,:) &
+                                  + x%QDT( DOF_BE(K,2) )*RtHSdat%PLinVelES(K,J,DOF_BE(K,2),1,:) &
                                   + x%QDT( DOF_BF(K,2) )*RtHSdat%PLinVelES(K,J,DOF_BF(K,2),1,:)
 
          RtHSdat%LinVelES(:,J,K)  = LinVelHS + RtHSdat%LinVelEZ
@@ -8226,7 +8369,16 @@ SUBROUTINE FillAugMat( p, x, CoordSys, u, HSSBrTrq, RtHSdat, AugMat )
       IF ( p%DOF_Flag(DOF_BE(K,1)) )  THEN
          AugMat(    DOF_BE(K,1),p%NAug) = AugMat(DOF_BE(K,1),p%NAug)      & !
                                         - p%KBE(K,1,1)*x%QT( DOF_BE(K,1)) &
-                                        - p%CBE(K,1,1)*x%QDT(DOF_BE(K,1))
+                                        - p%KBE(K,1,2)*x%QT( DOF_BE(K,2)) &
+                                        - p%CBE(K,1,1)*x%QDT(DOF_BE(K,1)) &
+                                        - p%CBE(K,1,2)*x%QDT(DOF_BE(K,2))
+      ENDIF
+      IF ( p%DOF_Flag(DOF_BE(K,2)) )  THEN
+         AugMat(    DOF_BE(K,2),p%NAug) = AugMat(DOF_BE(K,2),p%NAug)      & !
+                                        - p%KBE(K,2,1)*x%QT( DOF_BE(K,1)) &
+                                        - p%KBE(K,2,2)*x%QT( DOF_BE(K,2)) &
+                                        - p%CBE(K,2,1)*x%QDT(DOF_BE(K,1)) &
+                                        - p%CBE(K,2,2)*x%QDT(DOF_BE(K,2))
       ENDIF
                   
       
@@ -11200,6 +11352,7 @@ SUBROUTINE ED_Init_Jacobian_x( p, InitOut, ErrStat, ErrMsg)
       p%dx(DOF_BF(i,1))= 0.20_R8Ki * D2R_D * p%BldFlexL ! blade-deflection states: 1st blade flap mode 
       p%dx(DOF_BF(i,2))= 0.02_R8Ki * D2R_D * p%BldFlexL ! blade-deflection states: 2nd blade flap mode for blades (1/10 of the other perturbations)
       p%dx(DOF_BE(i,1))= 0.20_R8Ki * D2R_D * p%BldFlexL ! blade-deflection states: 1st blade edge mode
+      p%dx(DOF_BE(i,2))= 0.02_R8Ki * D2R_D * p%BldFlexL ! blade-deflection states: 2nd blade edge mode for blades (1/10 of the other perturbations)
    end do
          
    if ( p%NumBl == 2 ) then

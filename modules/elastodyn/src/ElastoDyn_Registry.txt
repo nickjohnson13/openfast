@@ -68,11 +68,12 @@ typedef	^	BladeInputData	ReKi	EdgcgOf	{:}	-	-	"Blade edge (along local aerodynam
 typedef	^	BladeInputData	ReKi	FlpEAOf	{:}	-	-	"Blade flap (along local aerodynamic xb-axis) elastic axis offset for a given input station"
 typedef	^	BladeInputData	ReKi	EdgEAOf	{:}	-	-	"Blade edge (along local aerodynamic yb-axis) elastic axis offset for a given input station"
 typedef	^	BladeInputData	ReKi	BldFlDmp	2	-	-	"Blade structural damping ratios in flapwise direction"
-typedef	^	BladeInputData	ReKi	BldEdDmp	1	-	-	"Blade structural damping ratios in edgewise direction"
+typedef	^	BladeInputData	ReKi	BldEdDmp	2	-	-	"Blade structural damping ratios in edgewise direction"
 typedef	^	BladeInputData	ReKi	FlStTunr	2	-	-	"Blade flapwise modal stiffness tuners (input)"
 typedef	^	BladeInputData	ReKi	BldFl1Sh	{:}	-	-	"Blade-flap-mode-1 shape coefficients"
 typedef	^	BladeInputData	ReKi	BldFl2Sh	{:}	-	-	"Blade-flap-mode-2 shape coefficients"
 typedef	^	BladeInputData	ReKi	BldEdgSh	{:}	-	-	"Blade-edge-mode shape coefficients"
+typedef	^	BladeInputData	ReKi	BldEdg2Sh	{:}	-	-	"Blade-edge-mode-2 shape coefficients"
 
 
 # ..... Blade Mesh Input file data ...........................................................................................................
@@ -90,6 +91,7 @@ typedef	^	ED_InputFile	ReKi	Gravity	-	-	-	"Gravitational acceleration"	m/s^2
 typedef	^	ED_InputFile	LOGICAL	FlapDOF1	-	-	-	"First flapwise blade mode DOF"	-
 typedef	^	ED_InputFile	LOGICAL	FlapDOF2	-	-	-	"Second flapwise blade mode DOF"	-
 typedef	^	ED_InputFile	LOGICAL	EdgeDOF	-	-	-	"Edgewise blade mode DOF"	-
+typedef	^	ED_InputFile	LOGICAL	EdgeDOF2	-	-	-	"Second edgewise blade mode DOF"	-
 typedef	^	ED_InputFile	LOGICAL	TeetDOF	-	-	-	"Rotor-teeter DOF"	-
 typedef	^	ED_InputFile	LOGICAL	DrTrDOF	-	-	-	"Drivetrain rotational-flexibility DOF"	-
 typedef	^	ED_InputFile	LOGICAL	GenDOF	-	-	-	"Generator DOF"	-
@@ -399,7 +401,6 @@ typedef	^	ED_RtHndSide	ReKi	PAngVelEG	{:}{:}{:}	-	-	"Partial angular velocity (a
 typedef	^	ED_RtHndSide	ReKi	PAngVelEH	{:}{:}{:}	-	-	"Partial angular velocity (and its 1st time derivative) of the hub (body H) in the inertia frame (body E for earth)"
 typedef	^	ED_RtHndSide	ReKi	PAngVelEL	{:}{:}{:}	-	-	"Partial angular velocity (and its 1st time derivative) of the low-speed shaft (body L) in the inertia frame (body E for earth)"
 typedef	^	ED_RtHndSide	ReKi	PAngVelEM	{:}{:}{:}{:}{:}	-	-	"Partial angular velocity (and its 1st time derivative) of eleMent J of blade K (body M) in the inertia frame (body E for earth)"
-typedef	^	ED_RtHndSide	ReKi	AngVelEM	{:}{:}{:}	-	-	"Angular velocity of of eleMent J of blade K (body M) in the inertia frame (body E for earth)"
 typedef	^	ED_RtHndSide	ReKi	PAngVelEN	{:}{:}{:}	-	-	"Partial angular velocity (and its 1st time derivative) of the nacelle (body N) in the inertia frame (body E for earth)"
 typedef	^	ED_RtHndSide	ReKi	AngVelEA	3	-	-	"Angular velocity of the tail (body A) in the inertia frame (body E for earth)"
 typedef	^	ED_RtHndSide	ReKi	PAngVelEB	{:}{:}{:}	-	-	"Partial angular velocity (and its 1st time derivative) of the base plate (body B) in the inertia frame (body E for earth)"
@@ -742,6 +743,7 @@ typedef	^	ParameterType	ReKi	TwistedSF	{:}{:}{:}{:}{:}	-	-	"Interpolated lineal 
 typedef	^	ParameterType	ReKi	BldFl1Sh	{:}{:}	-	-	"Blade-flap-mode-1 shape coefficients"
 typedef	^	ParameterType	ReKi	BldFl2Sh	{:}{:}	-	-	"Blade-flap-mode-2 shape coefficients"
 typedef	^	ParameterType	ReKi	BldEdgSh	{:}{:}	-	-	"Blade-edge-mode shape coefficients"
+typedef	^	ParameterType	ReKi	BldEdg2Sh	{:}{:}	-	-	"Blade-edge-mode-2 shape coefficients"
 # parameters from modes (Blade & Tower frequencies) -- these could probably be replaced by local variables (initialization only)
 typedef	^	ParameterType	ReKi	FreqBE	{:}{:}{:}	-	-	"Blade edgewise natural frequencies (both w/ and w/o centrifugal stiffening)"
 typedef	^	ParameterType	ReKi	FreqBF	{:}{:}{:}	-	-	"Blade flapwise natural frequencies (both w/ and w/o centrifugal stiffening)"

@@ -34,7 +34,7 @@ MODULE ElastoDyn_Parameters
       ! Parameters related to degrees of freedom (formerly MODULE DOFs)
 
    INTEGER(IntKi), PARAMETER        :: MaxBl    =  3                                   ! Maximum number of blades allowed in simulation
-   INTEGER(IntKi), PARAMETER        :: NumBE    =  1                                   ! Number of blade-edge modes
+   INTEGER(IntKi), PARAMETER        :: NumBE    =  2                                   ! Number of blade-edge modes NJ, updated to 2
    INTEGER(IntKi), PARAMETER        :: NumBF    =  2                                   ! Number of blade-flap modes
 
    INTEGER(IntKi), PARAMETER        :: DOF_Sg   =  1                                   ! DOF index for platform surge
@@ -54,13 +54,14 @@ MODULE ElastoDyn_Parameters
    INTEGER(IntKi), PARAMETER        :: DOF_TFrl = 15                                   ! DOF index for tail-furl
 
    INTEGER(IntKi), PARAMETER        :: DOF_BE (MaxBl,NumBE) = RESHAPE(  &              ! DOF indices for blade edge:
-                                               (/ 17, 20, 23 /),   (/MaxBl,NumBE/) )   !    1st blade edge mode for blades 1,2, and 3, respectively 17 + 3*(K-1)
+                                               (/ 17, 21, 25,           &              !    1st blade flap mode for blades 1,2, and 3, respectively 16 + 3*(K-1)
+                                                  19, 23, 27 /),    (/MaxBl,NumBE/) )   !    2nd blade edge mode for blades 1,2, and 3, respectively 17 + 3*(K-1)
    INTEGER(IntKi), PARAMETER        :: DOF_BF (MaxBl,NumBF) = RESHAPE(  &              ! DOF indices for blade flap:
-                                               (/ 16, 19, 22,           &              !    1st blade flap mode for blades 1,2, and 3, respectively 16 + 3*(K-1)
-                                                  18, 21, 24 /),   (/MaxBl,NumBF/) )   !    2nd blade flap mode for blades 1,2, and 3, respectively 18 + 3*(K-1)
+                                               (/ 16, 20, 24,           &              !    1st blade flap mode for blades 1,2, and 3, respectively 16 + 3*(K-1)
+                                                  18, 22, 26 /),   (/MaxBl,NumBF/) )   !    2nd blade flap mode for blades 1,2, and 3, respectively 18 + 3*(K-1)
 
 
-   INTEGER(IntKi), PARAMETER        :: DOF_Teet = 22 !DOF_TFrl + 2*(NumBE+NumBF)+ 1    ! DOF index for rotor-teeter
+   INTEGER(IntKi), PARAMETER        :: DOF_Teet = 24 !DOF_TFrl + 2*(NumBE+NumBF)+ 1    ! DOF index for rotor-teeter
 
 
 
@@ -1024,82 +1025,91 @@ MODULE ElastoDyn_Parameters
    INTEGER(IntKi), PARAMETER      :: Q_B1E1    = 783
    INTEGER(IntKi), PARAMETER      :: Q_B2E1    = 784
    INTEGER(IntKi), PARAMETER      :: Q_B3E1    = 785
-   INTEGER(IntKi), PARAMETER      :: Q_B1F1    = 786
-   INTEGER(IntKi), PARAMETER      :: Q_B2F1    = 787
-   INTEGER(IntKi), PARAMETER      :: Q_B3F1    = 788
-   INTEGER(IntKi), PARAMETER      :: Q_B1F2    = 789
-   INTEGER(IntKi), PARAMETER      :: Q_B2F2    = 790
-   INTEGER(IntKi), PARAMETER      :: Q_B3F2    = 791
-   INTEGER(IntKi), PARAMETER      :: Q_Teet    = 792
-   INTEGER(IntKi), PARAMETER      :: Q_DrTr    = 793
-   INTEGER(IntKi), PARAMETER      :: Q_GeAz    = 794
-   INTEGER(IntKi), PARAMETER      :: Q_RFrl    = 795
-   INTEGER(IntKi), PARAMETER      :: Q_TFrl    = 796
-   INTEGER(IntKi), PARAMETER      :: Q_Yaw     = 797
-   INTEGER(IntKi), PARAMETER      :: Q_TFA1    = 798
-   INTEGER(IntKi), PARAMETER      :: Q_TSS1    = 799
-   INTEGER(IntKi), PARAMETER      :: Q_TFA2    = 800
-   INTEGER(IntKi), PARAMETER      :: Q_TSS2    = 801
-   INTEGER(IntKi), PARAMETER      :: Q_Sg      = 802
-   INTEGER(IntKi), PARAMETER      :: Q_Sw      = 803
-   INTEGER(IntKi), PARAMETER      :: Q_Hv      = 804
-   INTEGER(IntKi), PARAMETER      :: Q_R       = 805
-   INTEGER(IntKi), PARAMETER      :: Q_P       = 806
-   INTEGER(IntKi), PARAMETER      :: Q_Y       = 807
-   INTEGER(IntKi), PARAMETER      :: QD_B1E1   = 808
-   INTEGER(IntKi), PARAMETER      :: QD_B2E1   = 809
-   INTEGER(IntKi), PARAMETER      :: QD_B3E1   = 810
-   INTEGER(IntKi), PARAMETER      :: QD_B1F1   = 811
-   INTEGER(IntKi), PARAMETER      :: QD_B2F1   = 812
-   INTEGER(IntKi), PARAMETER      :: QD_B3F1   = 813
-   INTEGER(IntKi), PARAMETER      :: QD_B1F2   = 814
-   INTEGER(IntKi), PARAMETER      :: QD_B2F2   = 815
-   INTEGER(IntKi), PARAMETER      :: QD_B3F2   = 816
-   INTEGER(IntKi), PARAMETER      :: QD_Teet   = 817
-   INTEGER(IntKi), PARAMETER      :: QD_DrTr   = 818
-   INTEGER(IntKi), PARAMETER      :: QD_GeAz   = 819
-   INTEGER(IntKi), PARAMETER      :: QD_RFrl   = 820
-   INTEGER(IntKi), PARAMETER      :: QD_TFrl   = 821
-   INTEGER(IntKi), PARAMETER      :: QD_Yaw    = 822
-   INTEGER(IntKi), PARAMETER      :: QD_TFA1   = 823
-   INTEGER(IntKi), PARAMETER      :: QD_TSS1   = 824
-   INTEGER(IntKi), PARAMETER      :: QD_TFA2   = 825
-   INTEGER(IntKi), PARAMETER      :: QD_TSS2   = 826
-   INTEGER(IntKi), PARAMETER      :: QD_Sg     = 827
-   INTEGER(IntKi), PARAMETER      :: QD_Sw     = 828
-   INTEGER(IntKi), PARAMETER      :: QD_Hv     = 829
-   INTEGER(IntKi), PARAMETER      :: QD_R      = 830
-   INTEGER(IntKi), PARAMETER      :: QD_P      = 831
-   INTEGER(IntKi), PARAMETER      :: QD_Y      = 832
-   INTEGER(IntKi), PARAMETER      :: QD2_B1E1  = 833
-   INTEGER(IntKi), PARAMETER      :: QD2_B2E1  = 834
-   INTEGER(IntKi), PARAMETER      :: QD2_B3E1  = 835
-   INTEGER(IntKi), PARAMETER      :: QD2_B1F1  = 836
-   INTEGER(IntKi), PARAMETER      :: QD2_B2F1  = 837
-   INTEGER(IntKi), PARAMETER      :: QD2_B3F1  = 838
-   INTEGER(IntKi), PARAMETER      :: QD2_B1F2  = 839
-   INTEGER(IntKi), PARAMETER      :: QD2_B2F2  = 840
-   INTEGER(IntKi), PARAMETER      :: QD2_B3F2  = 841
-   INTEGER(IntKi), PARAMETER      :: QD2_Teet  = 842
-   INTEGER(IntKi), PARAMETER      :: QD2_DrTr  = 843
-   INTEGER(IntKi), PARAMETER      :: QD2_GeAz  = 844
-   INTEGER(IntKi), PARAMETER      :: QD2_RFrl  = 845
-   INTEGER(IntKi), PARAMETER      :: QD2_TFrl  = 846
-   INTEGER(IntKi), PARAMETER      :: QD2_Yaw   = 847
-   INTEGER(IntKi), PARAMETER      :: QD2_TFA1  = 848
-   INTEGER(IntKi), PARAMETER      :: QD2_TSS1  = 849
-   INTEGER(IntKi), PARAMETER      :: QD2_TFA2  = 850
-   INTEGER(IntKi), PARAMETER      :: QD2_TSS2  = 851
-   INTEGER(IntKi), PARAMETER      :: QD2_Sg    = 852
-   INTEGER(IntKi), PARAMETER      :: QD2_Sw    = 853
-   INTEGER(IntKi), PARAMETER      :: QD2_Hv    = 854
-   INTEGER(IntKi), PARAMETER      :: QD2_R     = 855
-   INTEGER(IntKi), PARAMETER      :: QD2_P     = 856
-   INTEGER(IntKi), PARAMETER      :: QD2_Y     = 857
+   INTEGER(IntKi), PARAMETER      :: Q_B1E2    = 786
+   INTEGER(IntKi), PARAMETER      :: Q_B2E2    = 787
+   INTEGER(IntKi), PARAMETER      :: Q_B3E2    = 788
+   INTEGER(IntKi), PARAMETER      :: Q_B1F1    = 789
+   INTEGER(IntKi), PARAMETER      :: Q_B2F1    = 790
+   INTEGER(IntKi), PARAMETER      :: Q_B3F1    = 791
+   INTEGER(IntKi), PARAMETER      :: Q_B1F2    = 792
+   INTEGER(IntKi), PARAMETER      :: Q_B2F2    = 793
+   INTEGER(IntKi), PARAMETER      :: Q_B3F2    = 794
+   INTEGER(IntKi), PARAMETER      :: Q_Teet    = 795
+   INTEGER(IntKi), PARAMETER      :: Q_DrTr    = 796
+   INTEGER(IntKi), PARAMETER      :: Q_GeAz    = 797
+   INTEGER(IntKi), PARAMETER      :: Q_RFrl    = 798
+   INTEGER(IntKi), PARAMETER      :: Q_TFrl    = 799
+   INTEGER(IntKi), PARAMETER      :: Q_Yaw     = 800
+   INTEGER(IntKi), PARAMETER      :: Q_TFA1    = 801
+   INTEGER(IntKi), PARAMETER      :: Q_TSS1    = 802
+   INTEGER(IntKi), PARAMETER      :: Q_TFA2    = 803
+   INTEGER(IntKi), PARAMETER      :: Q_TSS2    = 804
+   INTEGER(IntKi), PARAMETER      :: Q_Sg      = 805
+   INTEGER(IntKi), PARAMETER      :: Q_Sw      = 806
+   INTEGER(IntKi), PARAMETER      :: Q_Hv      = 807
+   INTEGER(IntKi), PARAMETER      :: Q_R       = 808
+   INTEGER(IntKi), PARAMETER      :: Q_P       = 809
+   INTEGER(IntKi), PARAMETER      :: Q_Y       = 810
+   INTEGER(IntKi), PARAMETER      :: QD_B1E1   = 811
+   INTEGER(IntKi), PARAMETER      :: QD_B2E1   = 812
+   INTEGER(IntKi), PARAMETER      :: QD_B3E1   = 813
+   INTEGER(IntKi), PARAMETER      :: QD_B1E2   = 814
+   INTEGER(IntKi), PARAMETER      :: QD_B2E2   = 815
+   INTEGER(IntKi), PARAMETER      :: QD_B3E2   = 816
+   INTEGER(IntKi), PARAMETER      :: QD_B1F1   = 817
+   INTEGER(IntKi), PARAMETER      :: QD_B2F1   = 818
+   INTEGER(IntKi), PARAMETER      :: QD_B3F1   = 819
+   INTEGER(IntKi), PARAMETER      :: QD_B1F2   = 820
+   INTEGER(IntKi), PARAMETER      :: QD_B2F2   = 821
+   INTEGER(IntKi), PARAMETER      :: QD_B3F2   = 822
+   INTEGER(IntKi), PARAMETER      :: QD_Teet   = 823
+   INTEGER(IntKi), PARAMETER      :: QD_DrTr   = 824
+   INTEGER(IntKi), PARAMETER      :: QD_GeAz   = 825
+   INTEGER(IntKi), PARAMETER      :: QD_RFrl   = 826
+   INTEGER(IntKi), PARAMETER      :: QD_TFrl   = 827
+   INTEGER(IntKi), PARAMETER      :: QD_Yaw    = 828
+   INTEGER(IntKi), PARAMETER      :: QD_TFA1   = 829
+   INTEGER(IntKi), PARAMETER      :: QD_TSS1   = 830
+   INTEGER(IntKi), PARAMETER      :: QD_TFA2   = 831
+   INTEGER(IntKi), PARAMETER      :: QD_TSS2   = 832
+   INTEGER(IntKi), PARAMETER      :: QD_Sg     = 833
+   INTEGER(IntKi), PARAMETER      :: QD_Sw     = 834
+   INTEGER(IntKi), PARAMETER      :: QD_Hv     = 835
+   INTEGER(IntKi), PARAMETER      :: QD_R      = 836
+   INTEGER(IntKi), PARAMETER      :: QD_P      = 837
+   INTEGER(IntKi), PARAMETER      :: QD_Y      = 838
+   INTEGER(IntKi), PARAMETER      :: QD2_B1E1  = 839
+   INTEGER(IntKi), PARAMETER      :: QD2_B2E1  = 840
+   INTEGER(IntKi), PARAMETER      :: QD2_B3E1  = 841
+   INTEGER(IntKi), PARAMETER      :: QD2_B1E2  = 842
+   INTEGER(IntKi), PARAMETER      :: QD2_B2E2  = 843
+   INTEGER(IntKi), PARAMETER      :: QD2_B3E2  = 844
+   INTEGER(IntKi), PARAMETER      :: QD2_B1F1  = 845
+   INTEGER(IntKi), PARAMETER      :: QD2_B2F1  = 846
+   INTEGER(IntKi), PARAMETER      :: QD2_B3F1  = 847
+   INTEGER(IntKi), PARAMETER      :: QD2_B1F2  = 848
+   INTEGER(IntKi), PARAMETER      :: QD2_B2F2  = 849
+   INTEGER(IntKi), PARAMETER      :: QD2_B3F2  = 850
+   INTEGER(IntKi), PARAMETER      :: QD2_Teet  = 851
+   INTEGER(IntKi), PARAMETER      :: QD2_DrTr  = 852
+   INTEGER(IntKi), PARAMETER      :: QD2_GeAz  = 853
+   INTEGER(IntKi), PARAMETER      :: QD2_RFrl  = 854
+   INTEGER(IntKi), PARAMETER      :: QD2_TFrl  = 855
+   INTEGER(IntKi), PARAMETER      :: QD2_Yaw   = 856
+   INTEGER(IntKi), PARAMETER      :: QD2_TFA1  = 857
+   INTEGER(IntKi), PARAMETER      :: QD2_TSS1  = 858
+   INTEGER(IntKi), PARAMETER      :: QD2_TFA2  = 859
+   INTEGER(IntKi), PARAMETER      :: QD2_TSS2  = 860
+   INTEGER(IntKi), PARAMETER      :: QD2_Sg    = 861
+   INTEGER(IntKi), PARAMETER      :: QD2_Sw    = 862
+   INTEGER(IntKi), PARAMETER      :: QD2_Hv    = 863
+   INTEGER(IntKi), PARAMETER      :: QD2_R     = 864
+   INTEGER(IntKi), PARAMETER      :: QD2_P     = 865
+   INTEGER(IntKi), PARAMETER      :: QD2_Y     = 866
 
 
      ! The maximum number of output channels which can be output by the code.
-   INTEGER(IntKi), PARAMETER      :: MaxOutPts = 857
+   INTEGER(IntKi), PARAMETER      :: MaxOutPts = 866
 
 !End of code generated by Matlab script
 ! ===================================================================================================
@@ -1876,6 +1886,15 @@ SUBROUTINE ReadBladeFile ( BldFile, BladeKInputFileData, ReadAdmVals, UnEc, ErrS
       END IF
 
 
+      ! Added by NJ, BldEdgSh2 - Blade-edge mode shape coefficients.
+
+   CALL ReadAryLines ( UnIn, BldFile, BladeKInputFileData%BldEdg2Sh, SIZE(BladeKInputFileData%BldEdg2Sh), 'BldEdg2Sh', & !NJ changed for 2nd Edge
+                     'Blade-edge mode-2 shape coefficients', ErrStat2, ErrMsg2, UnEc )
+      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+      IF ( ErrStat >= AbortErrLev ) THEN
+         CALL Cleanup()
+         RETURN
+      END IF
 
    !  -------------- END OF FILE --------------------------------------------
 
@@ -3449,6 +3468,14 @@ SUBROUTINE ReadPrimaryFile( InputFile, InputFileData, BldFile, FurlFile, TwrFile
          RETURN
       END IF
 
+      ! EdgeDOF2 - Edgewise blade mode DOF (flag):
+   CALL ReadVar( UnIn, InputFile, InputFileData%EdgeDOF2, "EdgeDOF2", "Edgewise blade mode DOF (flag)", ErrStat2, ErrMsg2, UnEc)
+      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+      IF ( ErrStat >= AbortErrLev ) THEN
+         CALL Cleanup()
+         RETURN
+      END IF
+
       ! TeetDOF - Rotor-teeter DOF (flag):
    CALL ReadVar( UnIn, InputFile, InputFileData%TeetDOF, "TeetDOF", "Rotor-teeter DOF (flag)", ErrStat2, ErrMsg2, UnEc)
       CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
@@ -4424,6 +4451,9 @@ SUBROUTINE Alloc_BladeInputProperties( BladeKInputFileData, AllocAdams, ErrStat,
    IF ( ErrStat /= ErrID_None ) RETURN
    CALL AllocAry  ( BladeKInputFileData%BldEdgSh,  PolyOrd-1, 'BldEdgSh'  , ErrStat, ErrMsg )
    IF ( ErrStat /= ErrID_None ) RETURN
+   CALL AllocAry  ( BladeKInputFileData%BldEdg2Sh,  PolyOrd-1, 'BldEdg2Sh'  , ErrStat, ErrMsg ) ! NJ added for 2nd edge
+   IF ( ErrStat /= ErrID_None ) RETURN
+
 
 
 END SUBROUTINE Alloc_BladeInputProperties
@@ -4628,6 +4658,9 @@ SUBROUTINE ValidateBladeData ( BladeKInputFileData, ErrStat, ErrMsg )
    CALL SetErrStat( ErrStat2, ErrMsg2,ErrStat,ErrMsg,RoutineName)
 
    CALL ValidateModeShapeCoeffs(BladeKInputFileData%BldEdgSh, 'blade edge', ErrStat2, ErrMsg2 )
+   CALL SetErrStat( ErrStat2, ErrMsg2,ErrStat,ErrMsg,RoutineName)
+
+   CALL ValidateModeShapeCoeffs(BladeKInputFileData%BldEdg2Sh, 'blade edge mode 2', ErrStat2, ErrMsg2 ) ! NJ added for 2nd edge
    CALL SetErrStat( ErrStat2, ErrMsg2,ErrStat,ErrMsg,RoutineName)
 
 END SUBROUTINE ValidateBladeData
